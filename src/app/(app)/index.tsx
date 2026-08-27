@@ -4,14 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/themed-view';
 import { Totals } from '@/components/totals';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useBaseStore } from '@/store/base-store';
+import { useTransactionsStore } from '@/store/transactions-store';
 
 export default function HomeScreen() {
-  const {amount} = useBaseStore();
+  const { balance } = useTransactionsStore();
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
-        <Totals amount={amount}/>
+        <Totals balance={balance}/>
       </SafeAreaView>
     </ThemedView>
   );

@@ -9,31 +9,31 @@ import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
 type TotalsProps = {
-  amount: number;
+  balance: number;
   sources?: {
     title: string;
-    amount: number;
+    balance: number;
   }[];
 }
 
 export function Totals(props: TotalsProps) {
   const theme = useTheme();
 
-  const formattedAmount = useMemo(
+  const formattedBalance = useMemo(
     () =>
       new Intl.NumberFormat('ru-RU', {
         maximumFractionDigits: 0,
-      }).format(props.amount),
-    [props.amount]
+      }).format(props.balance),
+    [props.balance]
   );
 
   const otherTotal: number | null = useMemo(() => {
     if (!props.sources || props.sources.length === 0) return null;
 
-    return props.amount - props.sources
-      .map((item) => item.amount)
+    return props.balance - props.sources
+      .map((item) => item.balance)
       .reduce((accumulator, current) => accumulator + current, 0);
-  }, [props.amount, props.sources]);
+  }, [props.balance, props.sources]);
 
   return (
     <ThemedView
@@ -59,9 +59,9 @@ export function Totals(props: TotalsProps) {
         </View>
       </View>
 
-      <View style={styles.amountBlock}>
-        <ThemedText style={styles.amount}>
-          {formattedAmount}
+      <View style={styles.balanceBlock}>
+        <ThemedText style={styles.balance}>
+          {formattedBalance}
         </ThemedText>
         <ThemedText type="smallBold" themeColor="textSecondary">
           KZT
@@ -77,7 +77,7 @@ export function Totals(props: TotalsProps) {
                 {source.title}
               </ThemedText>
               <ThemedText type="smallBold">
-                {source.amount}
+                {source.balance}
               </ThemedText>
             </View>
           ))}
@@ -121,12 +121,12 @@ const styles = StyleSheet.create({
   headerText: {
     flex: 1,
   },
-  amountBlock: {
+  balanceBlock: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: Spacing.two,
   },
-  amount: {
+  balance: {
     fontSize: 44,
     lineHeight: 50,
     fontWeight: '800',

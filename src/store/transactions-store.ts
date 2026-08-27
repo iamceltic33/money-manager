@@ -8,33 +8,33 @@ import { showErrorToast } from '@/store/toast-store';
 import { create } from 'zustand';
 
 type Store = {
-    amount: number;
+    balance: number;
     history: LocalTransaction[];
     initialized: boolean;
     init: () => Promise<void>;
     refresh: () => Promise<void>;
-    changeAmount: (amount: number, type: LocalTransactionType) => Promise<void>;
+    createTransaction: (balance: number, type: LocalTransactionType) => Promise<void>;
 }
 
 async function getLocalSummary() {
-    const [amount, history] = await Promise.all([
+    const [balance, history] = await Promise.all([
         getLocalBalance(),
         getLocalTransactions(),
     ]);
 
-    return { amount, history };
+    return { balance, history };
 }
 
-export const useBaseStore = create<Store>((set) => ({
-    amount: 0,
+export const useTransactionsStore = create<Store>((set) => ({
+    balance: 0,
     history: [],
     initialized: false,
     init: async () => {
         try {
-            const { amount, history } = await getLocalSummary();
+            const { balance, history } = await getLocalSummary();
 
             set({
-                amount,
+                balance,
                 history,
                 initialized: true,
             });
@@ -44,17 +44,17 @@ export const useBaseStore = create<Store>((set) => ({
     },
     refresh: async () => {
         try {
-            const { amount, history } = await getLocalSummary();
+            const { balance, history } = await getLocalSummary();
 
             set({
-                amount,
+                balance,
                 history,
             });
         } catch (error) {
             showErrorToast(error, 'Не удалось обновить локальные данные');
         }
     },
-    changeAmount: async (amount, type) => {
+    createTransaction: async (amount, type) => {
         try {
             await createLocalTransaction({
                 amount,

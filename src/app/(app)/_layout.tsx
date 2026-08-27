@@ -3,14 +3,14 @@ import { OperationSwitcher } from '@/components/operation-switcher';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAuthStore } from '@/store/auth-store';
-import { useBaseStore } from '@/store/base-store';
+import { useTransactionsStore } from '@/store/transactions-store';
 import { Redirect, Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { View } from 'react-native';
 
 export default function TabLayout() {
     const { session } = useAuthStore();
-    const { initialized, init } = useBaseStore();
+    const { initialized, init } = useTransactionsStore();
 
     useEffect(() => {
         if (session && !initialized) {

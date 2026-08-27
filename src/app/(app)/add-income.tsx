@@ -2,8 +2,8 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
-import { useBaseStore } from "@/store/base-store";
 import { showSuccessToast } from "@/store/toast-store";
+import { useTransactionsStore } from "@/store/transactions-store";
 import { useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useState } from "react";
@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function AddIncome() {
     const theme = useTheme();
     const [textValue, setTextValue] = useState('');
-    const { amount: balance, changeAmount } = useBaseStore();
+    const { balance, createTransaction } = useTransactionsStore();
     const router = useRouter();
 
     const addIncome = async () => {
@@ -21,7 +21,7 @@ export default function AddIncome() {
         const amount = Number(textValue);
         if (isNaN(amount)) return;
         try {
-            await changeAmount(amount, 'income');
+            await createTransaction(amount, 'income');
             showSuccessToast('Доход добавлен');
             router.replace('/');
         } catch {}
