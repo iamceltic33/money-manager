@@ -23,3 +23,12 @@ export type CreateLocalTransactionParams = {
   note?: string | null;
   occurredAt?: Date;
 };
+
+export type UpdateLocalTransactionParams = {
+  id: string;
+  type?: LocalTransactionType;
+  amount?: number;
+  categoryId?: string | null;
+  note?: string | null;
+  occurredAt?: Date;
+};

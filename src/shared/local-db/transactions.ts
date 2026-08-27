@@ -1,6 +1,10 @@
 import { getLocalDb } from '.';
 
-import type { CreateLocalTransactionParams, LocalTransaction } from './types';
+import type {
+  CreateLocalTransactionParams,
+  LocalTransaction,
+  UpdateLocalTransactionParams,
+} from './types';
 
 type BalanceRow = {
   balance: number | null;
@@ -69,6 +73,48 @@ export async function getLocalTransactionById(id: string) {
     `,
     id
   );
+}
+
+export async function updateLocalTransaction(params: UpdateLocalTransactionParams) {
+  const database = await getLocalDb();
+  const currentTransaction = await getLocalTransactionById(params.id);
+
+  if (!currentTransaction) {
+    throw new Error('Локальная операция не найдена');
+  }
+
+  await database.runAsync(
+    `
+      update transactions
+      set
+        type = ?,
+        amount = ?,
+        category_id = ?,
+        note = ?,
+        occurred_at = ?,
+        updated_at = ?,
+        sync_status = ?,
+        sync_error = ?
+      where id = ?;
+    `,
+    params.type ?? currentTransaction.type,
+    params.amount ?? currentTransaction.amount,
+    params.categoryId === undefined ? currentTransaction.category_id : params.categoryId,
+    params.note === undefined ? currentTransaction.note : params.note,
+    params.occurredAt?.toISOString() ?? currentTransaction.occurred_at,
+    new Date().toISOString(),
+    'pending',
+    null,
+    params.id
+  );
+
+  const updatedTransaction = await getLocalTransactionById(params.id);
+
+  if (!updatedTransaction) {
+    throw new Error('Не удалось обновить локальную операцию');
+  }
+
+  return updatedTransaction;
 }
 
 export async function getLocalTransactions() {

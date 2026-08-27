@@ -3,9 +3,15 @@ import {
     getLocalBalance,
     getLocalTransactions,
 } from '@/shared/local-db/transactions';
-import type { LocalTransaction, LocalTransactionType } from '@/shared/local-db/types';
+import type {
+    CreateLocalTransactionParams,
+    LocalTransaction,
+    LocalTransactionType,
+} from '@/shared/local-db/types';
 import { showErrorToast } from '@/store/toast-store';
 import { create } from 'zustand';
+
+type CreateTransactionParams = Omit<CreateLocalTransactionParams, 'amount' | 'type'>;
 
 type Store = {
     balance: number;
@@ -13,7 +19,11 @@ type Store = {
     initialized: boolean;
     init: () => Promise<void>;
     refresh: () => Promise<void>;
-    createTransaction: (balance: number, type: LocalTransactionType) => Promise<void>;
+    createTransaction: (
+        balance: number,
+        type: LocalTransactionType,
+        params?: CreateTransactionParams
+    ) => Promise<void>;
 }
 
 async function getLocalSummary() {
@@ -54,11 +64,12 @@ export const useTransactionsStore = create<Store>((set) => ({
             showErrorToast(error, 'Не удалось обновить локальные данные');
         }
     },
-    createTransaction: async (amount, type) => {
+    createTransaction: async (amount, type, params) => {
         try {
             await createLocalTransaction({
                 amount,
                 type,
+                ...params,
             });
 
             const summary = await getLocalSummary();

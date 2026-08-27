@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { DateField } from "@/components/ui/date-field";
 import { MaxContentWidth, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { showSuccessToast } from "@/store/toast-store";
@@ -15,13 +16,14 @@ export default function AddIncome() {
     const [textValue, setTextValue] = useState('');
     const { balance, createTransaction } = useTransactionsStore();
     const router = useRouter();
+    const [date, setDate] = useState(new Date());
 
     const addIncome = async () => {
         if (!textValue) return;
         const amount = Number(textValue);
         if (isNaN(amount)) return;
         try {
-            await createTransaction(amount, 'income');
+            await createTransaction(amount, 'income', { occurredAt: date });
             showSuccessToast('Доход добавлен');
             router.replace('/');
         } catch {}
@@ -76,6 +78,8 @@ export default function AddIncome() {
                 ]}
                 value={textValue}
             />
+
+            <DateField label="Дата расхода" value={date} onChange={setDate} maximumDate={new Date()}/>
 
             <Pressable
                 accessibilityRole="button"
