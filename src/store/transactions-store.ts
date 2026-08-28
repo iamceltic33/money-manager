@@ -24,6 +24,7 @@ type Store = {
         type: LocalTransactionType,
         params?: CreateTransactionParams
     ) => Promise<void>;
+    getTransaction: (id: string) => LocalTransaction | null;
 }
 
 async function getLocalSummary() {
@@ -35,7 +36,7 @@ async function getLocalSummary() {
     return { balance, history };
 }
 
-export const useTransactionsStore = create<Store>((set) => ({
+export const useTransactionsStore = create<Store>((set, get) => ({
     balance: 0,
     history: [],
     initialized: false,
@@ -85,5 +86,9 @@ export const useTransactionsStore = create<Store>((set) => ({
             );
             throw error;
         }
+    },
+    getTransaction: (id) => {
+        return get().history.find(item => item.id === id) ?? null;
     }
 }));
+

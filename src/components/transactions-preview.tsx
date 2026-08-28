@@ -1,11 +1,12 @@
 import { Info } from 'lucide-react-native';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { LocalTransaction } from '@/shared/local-db/types';
+import { Link } from 'expo-router';
 
 type Props = {
   transactions: LocalTransaction[]
@@ -35,22 +36,27 @@ export function TransactionsPreview(props: Props) {
         {transactions.map((item, index) => {
           const isIncome = item.type === 'income';
           return <View key={item.id}>
-            <View style={styles.row}>
-              <View style={[styles.iconBadge, { backgroundColor: theme.background }]}>
-                <Info color={isIncome ? styles.incomeAmount.color : styles.expenseAmount.color} size={20} strokeWidth={2.4} />
-              </View>
-              <View style={styles.rowContent}>
-                {item.category_id && <ThemedText type="smallBold">{item.category_id}</ThemedText>}
-                <ThemedText type="small" themeColor="textSecondary">
-                  {(new Date(item.occurred_at)).toLocaleDateString()}
-                </ThemedText>
-              </View>
-              <ThemedText type="smallBold" style={isIncome ? styles.incomeAmount : styles.expenseAmount}>
-                {item.type === 'income' ? '+' : '-'} {item.amount}
-              </ThemedText>
-            </View>
-            { (index !== transactions.length - 1) && <View style={[styles.divider, { backgroundColor: theme.backgroundSelected }]} />}
-        </View>})}
+            <Link href={`/transactions/${item.id}`} asChild>
+              <Pressable>
+                <View style={styles.row}>
+                  <View style={[styles.iconBadge, { backgroundColor: theme.background }]}>
+                    <Info color={isIncome ? styles.incomeAmount.color : styles.expenseAmount.color} size={20} strokeWidth={2.4} />
+                  </View>
+                  <View style={styles.rowContent}>
+                    {item.category_id && <ThemedText type="smallBold">{item.category_id}</ThemedText>}
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {(new Date(item.occurred_at)).toLocaleDateString()}
+                    </ThemedText>
+                  </View>
+                  <ThemedText type="smallBold" style={isIncome ? styles.incomeAmount : styles.expenseAmount}>
+                    {item.type === 'income' ? '+' : '-'} {item.amount}
+                  </ThemedText>
+                </View>
+              </Pressable>
+            </Link>
+            {(index !== transactions.length - 1) && <View style={[styles.divider, { backgroundColor: theme.backgroundSelected }]} />}
+          </View>
+        })}
       </View>
     </ThemedView>
   );
