@@ -1,10 +1,10 @@
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { DateField } from "@/components/ui/date-field";
-import { MaxContentWidth, Spacing } from "@/constants/theme";
-import { useTheme } from "@/hooks/use-theme";
-import { showSuccessToast } from "@/store/toast-store";
-import { useTransactionsStore } from "@/store/transactions-store";
+import { ThemedText } from "@/shared/ui/themed-text";
+import { ThemedView } from "@/shared/ui/themed-view";
+import { DateField } from "@/shared/ui/date-field";
+import { MaxContentWidth, Spacing } from "@/shared/config/theme";
+import { useTheme } from "@/shared/lib/theme/use-theme";
+import { showSuccessToast } from "@/shared/model/toast-store";
+import { useTransactionsStore } from "@/entities/transaction";
 import { useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useState } from "react";

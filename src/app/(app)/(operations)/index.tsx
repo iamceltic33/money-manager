@@ -1,11 +1,11 @@
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ThemedView } from '@/components/themed-view';
-import { Totals } from '@/components/totals';
-import { TransactionsPreview } from '@/components/transactions-preview';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { useTransactionsStore } from '@/store/transactions-store';
+import { ThemedView } from '@/shared/ui/themed-view';
+import { Totals } from '@/widgets/totals';
+import { TransactionsPreview } from '@/widgets/transactions-preview';
+import { BottomTabInset, MaxContentWidth, Spacing } from '@/shared/config/theme';
+import { useTransactionsStore } from '@/entities/transaction';
 
 export default function HomeScreen() {
   const { balance, history } = useTransactionsStore();

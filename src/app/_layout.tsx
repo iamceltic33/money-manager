@@ -1,6 +1,6 @@
-import { AppLoadingOverlay } from '@/components/ui/app-loading-overlay';
-import { AppToast } from '@/components/ui/app-toast';
-import { AuthProvider } from '@/providers/AuthProvider';
+import { AppLoadingOverlay } from '@/widgets/app-loading-overlay';
+import { AppToast } from '@/widgets/app-toast';
+import { AuthProvider } from '@/app/providers/auth-provider';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';

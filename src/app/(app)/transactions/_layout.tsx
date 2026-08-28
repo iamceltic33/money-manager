@@ -1,6 +1,6 @@
-import { ThemedView } from '@/components/themed-view';
-import { MaxContentWidth, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { ThemedView } from '@/shared/ui/themed-view';
+import { MaxContentWidth, Spacing } from '@/shared/config/theme';
+import { useTheme } from '@/shared/lib/theme/use-theme';
 import { router, Stack } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';

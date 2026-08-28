@@ -1,7 +1,7 @@
-import { AppHeader } from '@/components/app-header';
-import { ThemedView } from '@/components/themed-view';
-import { useAuthStore } from '@/store/auth-store';
-import { useTransactionsStore } from '@/store/transactions-store';
+import { AppHeader } from '@/widgets/app-header';
+import { ThemedView } from '@/shared/ui/themed-view';
+import { useAuthStore } from '@/features/auth';
+import { useTransactionsStore } from '@/entities/transaction';
 import { Redirect, Stack } from 'expo-router';
 import { useEffect } from 'react';
 

@@ -1,5 +1,5 @@
-import { Authorization } from "@/components/authorization";
-import { useAuthStore } from "@/store/auth-store";
+import { Authorization } from "@/features/auth";
+import { useAuthStore } from "@/features/auth";
 import { Redirect } from "expo-router";
 
 export default function Auth() {
