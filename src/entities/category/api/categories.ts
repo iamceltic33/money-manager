@@ -24,6 +24,7 @@ export async function createLocalCategory(params: CreateLocalCategoryParams) {
     `
       insert into categories (
         id,
+        user_id,
         remote_id,
         type,
         name,
@@ -35,9 +36,10 @@ export async function createLocalCategory(params: CreateLocalCategoryParams) {
         sync_status,
         sync_error
       )
-      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     `,
     id,
+    params.userId,
     null,
     params.type,
     params.name.trim(),
@@ -50,7 +52,7 @@ export async function createLocalCategory(params: CreateLocalCategoryParams) {
     null
   );
 
-  const category = await getLocalCategoryById(id);
+  const category = await getLocalCategoryById(params.userId, id);
 
   if (!category) {
     throw new Error('Не удалось создать локальную категорию');
@@ -59,20 +61,21 @@ export async function createLocalCategory(params: CreateLocalCategoryParams) {
   return category;
 }
 
-export async function getLocalCategoryById(id: string) {
+export async function getLocalCategoryById(userId: string, id: string) {
   const database = await getLocalDb();
 
   return database.getFirstAsync<LocalCategory>(
     `
       select *
       from categories
-      where id = ?;
+      where user_id = ? and id = ?;
     `,
+    userId,
     id
   );
 }
 
-export async function getLocalCategories(type?: LocalCategoryType) {
+export async function getLocalCategories(userId: string, type?: LocalCategoryType) {
   const database = await getLocalDb();
 
   if (type) {
@@ -80,23 +83,28 @@ export async function getLocalCategories(type?: LocalCategoryType) {
       `
         select *
         from categories
-        where type = ?
+        where user_id = ? and type = ?
         order by sort_order asc, name asc;
       `,
+      userId,
       type
     );
   }
 
-  return database.getAllAsync<LocalCategory>(`
-    select *
-    from categories
-    order by type asc, sort_order asc, name asc;
-  `);
+  return database.getAllAsync<LocalCategory>(
+    `
+      select *
+      from categories
+      where user_id = ?
+      order by type asc, sort_order asc, name asc;
+    `,
+    userId
+  );
 }
 
 export async function updateLocalCategory(params: UpdateLocalCategoryParams) {
   const database = await getLocalDb();
-  const currentCategory = await getLocalCategoryById(params.id);
+  const currentCategory = await getLocalCategoryById(params.userId, params.id);
 
   if (!currentCategory) {
     throw new Error('Локальная категория не найдена');
@@ -114,7 +122,7 @@ export async function updateLocalCategory(params: UpdateLocalCategoryParams) {
         updated_at = ?,
         sync_status = ?,
         sync_error = ?
-      where id = ?;
+      where user_id = ? and id = ?;
     `,
     params.type ?? currentCategory.type,
     params.name?.trim() ?? currentCategory.name,
@@ -124,10 +132,11 @@ export async function updateLocalCategory(params: UpdateLocalCategoryParams) {
     new Date().toISOString(),
     'pending',
     null,
+    params.userId,
     params.id
   );
 
-  const updatedCategory = await getLocalCategoryById(params.id);
+  const updatedCategory = await getLocalCategoryById(params.userId, params.id);
 
   if (!updatedCategory) {
     throw new Error('Не удалось обновить локальную категорию');
@@ -136,25 +145,29 @@ export async function updateLocalCategory(params: UpdateLocalCategoryParams) {
   return updatedCategory;
 }
 
-export async function deleteLocalCategory(id: string) {
+export async function deleteLocalCategory(userId: string, id: string) {
   const database = await getLocalDb();
 
   await database.runAsync(
     `
       delete from categories
-      where id = ?;
+      where user_id = ? and id = ?;
     `,
+    userId,
     id
   );
 }
 
-export async function getPendingLocalCategories() {
+export async function getPendingLocalCategories(userId: string) {
   const database = await getLocalDb();
 
-  return database.getAllAsync<LocalCategory>(`
-    select *
-    from categories
-    where sync_status in ('pending', 'failed')
-    order by created_at asc;
-  `);
+  return database.getAllAsync<LocalCategory>(
+    `
+      select *
+      from categories
+      where user_id = ? and sync_status in ('pending', 'failed')
+      order by created_at asc;
+    `,
+    userId
+  );
 }

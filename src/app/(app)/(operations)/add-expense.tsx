@@ -5,6 +5,7 @@ import { MaxContentWidth, Spacing } from "@/shared/config/theme";
 import { useTheme } from "@/shared/lib/theme/use-theme";
 import { showSuccessToast } from "@/shared/model/toast-store";
 import { useTransactionsStore } from "@/entities/transaction";
+import { TransactionCategoryField } from "@/features/category/select-for-transaction";
 import { useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useState } from "react";
@@ -17,13 +18,14 @@ export default function AddExpense() {
     const { balance, createTransaction } = useTransactionsStore();
     const router = useRouter();
     const [date, setDate] = useState(new Date());
+    const [categoryId, setCategoryId] = useState<string | null>(null);
 
     const addExpense = async () => {
         if (!textValue) return;
         const amount = Number(textValue);
         if (isNaN(amount)) return;
         try {
-            await createTransaction(amount, 'expense', { occurredAt: date });
+            await createTransaction(amount, 'expense', { occurredAt: date, categoryId });
             showSuccessToast('Расход добавлен');
             router.replace('/');
         } catch {}
@@ -80,6 +82,12 @@ export default function AddExpense() {
             />
 
             <DateField label="Дата расхода" value={date} onChange={setDate} maximumDate={new Date()}/>
+
+            <TransactionCategoryField
+                type="expense"
+                value={categoryId}
+                onChange={setCategoryId}
+            />
 
             <Pressable
                 accessibilityRole="button"

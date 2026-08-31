@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 4;
 
 type UserVersionRow = {
   user_version: number;
@@ -133,6 +133,47 @@ export async function runLocalMigrations(database: SQLiteDatabase) {
     `);
 
     await database.execAsync('PRAGMA foreign_keys = ON;');
+  }
+
+  if (currentVersion < 3) {
+    await database.execAsync(`
+      alter table categories add column user_id text;
+      alter table transactions add column user_id text;
+
+      create index if not exists categories_user_id_idx
+      on categories(user_id);
+
+      create index if not exists categories_user_type_idx
+      on categories(user_id, type);
+
+      create index if not exists transactions_user_id_idx
+      on transactions(user_id);
+
+      create index if not exists transactions_user_occurred_at_idx
+      on transactions(user_id, occurred_at);
+    `);
+  }
+
+  if (currentVersion < 4) {
+    await database.execAsync(`
+      create table if not exists local_users (
+        id text primary key not null,
+        created_at text not null,
+        initialized_at text not null
+      );
+
+      insert or ignore into local_users (
+        id,
+        created_at,
+        initialized_at
+      )
+      select distinct
+        user_id,
+        strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+        strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+      from categories
+      where user_id is not null;
+    `);
   }
 
   await database.execAsync(`PRAGMA user_version = ${DATABASE_VERSION};`);

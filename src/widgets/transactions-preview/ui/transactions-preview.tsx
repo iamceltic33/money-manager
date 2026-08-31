@@ -1,6 +1,6 @@
-import { Info } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { CategoryIcon, useCategoryStore } from '@/entities/category';
 import { LocalTransaction } from '@/entities/transaction';
 import { Spacing } from '@/shared/config/theme';
 import { useTheme } from '@/shared/lib/theme/use-theme';
@@ -15,6 +15,7 @@ type Props = {
 export function TransactionsPreview(props: Props) {
   const theme = useTheme();
   const { transactions } = props;
+  const categories = useCategoryStore((state) => state.categories);
 
   return (
     <ThemedView
@@ -35,15 +36,16 @@ export function TransactionsPreview(props: Props) {
       <View style={styles.list}>
         {transactions.map((item, index) => {
           const isIncome = item.type === 'income';
+          const category = categories.find((value) => value.id === item.category_id);
           return <View key={item.id}>
             <Link href={`/transactions/${item.id}`} asChild>
               <Pressable>
                 <View style={styles.row}>
                   <View style={[styles.iconBadge, { backgroundColor: theme.background }]}>
-                    <Info color={isIncome ? styles.incomeAmount.color : styles.expenseAmount.color} size={20} strokeWidth={2.4} />
+                    <CategoryIcon color={category?.color ?? (isIncome ? styles.incomeAmount.color : styles.expenseAmount.color)} name={category?.icon}/>
                   </View>
                   <View style={styles.rowContent}>
-                    {item.category_id && <ThemedText type="smallBold">{item.category_id}</ThemedText>}
+                    {category && <ThemedText type="smallBold">{category.name}</ThemedText>}
                     <ThemedText type="small" themeColor="textSecondary">
                       {(new Date(item.occurred_at)).toLocaleDateString()}
                     </ThemedText>

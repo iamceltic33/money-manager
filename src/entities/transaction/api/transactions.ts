@@ -27,6 +27,7 @@ export async function createLocalTransaction(params: CreateLocalTransactionParam
     `
       insert into transactions (
         id,
+        user_id,
         remote_id,
         type,
         amount,
@@ -38,9 +39,10 @@ export async function createLocalTransaction(params: CreateLocalTransactionParam
         sync_status,
         sync_error
       )
-      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     `,
     id,
+    params.userId,
     null,
     params.type,
     params.amount,
@@ -53,7 +55,7 @@ export async function createLocalTransaction(params: CreateLocalTransactionParam
     null
   );
 
-  const transaction = await getLocalTransactionById(id);
+  const transaction = await getLocalTransactionById(params.userId, id);
 
   if (!transaction) {
     throw new Error('Не удалось создать локальную операцию');
@@ -62,22 +64,23 @@ export async function createLocalTransaction(params: CreateLocalTransactionParam
   return transaction;
 }
 
-export async function getLocalTransactionById(id: string) {
+export async function getLocalTransactionById(userId: string, id: string) {
   const database = await getLocalDb();
 
   return database.getFirstAsync<LocalTransaction>(
     `
       select *
       from transactions
-      where id = ?;
+      where user_id = ? and id = ?;
     `,
+    userId,
     id
   );
 }
 
 export async function updateLocalTransaction(params: UpdateLocalTransactionParams) {
   const database = await getLocalDb();
-  const currentTransaction = await getLocalTransactionById(params.id);
+  const currentTransaction = await getLocalTransactionById(params.userId, params.id);
 
   if (!currentTransaction) {
     throw new Error('Локальная операция не найдена');
@@ -95,7 +98,7 @@ export async function updateLocalTransaction(params: UpdateLocalTransactionParam
         updated_at = ?,
         sync_status = ?,
         sync_error = ?
-      where id = ?;
+      where user_id = ? and id = ?;
     `,
     params.type ?? currentTransaction.type,
     params.amount ?? currentTransaction.amount,
@@ -105,10 +108,11 @@ export async function updateLocalTransaction(params: UpdateLocalTransactionParam
     new Date().toISOString(),
     'pending',
     null,
+    params.userId,
     params.id
   );
 
-  const updatedTransaction = await getLocalTransactionById(params.id);
+  const updatedTransaction = await getLocalTransactionById(params.userId, params.id);
 
   if (!updatedTransaction) {
     throw new Error('Не удалось обновить локальную операцию');
@@ -117,42 +121,53 @@ export async function updateLocalTransaction(params: UpdateLocalTransactionParam
   return updatedTransaction;
 }
 
-export async function getLocalTransactions() {
+export async function getLocalTransactions(userId: string) {
   const database = await getLocalDb();
 
-  return database.getAllAsync<LocalTransaction>(`
-    select *
-    from transactions
-    order by occurred_at desc, created_at desc;
-  `);
+  return database.getAllAsync<LocalTransaction>(
+    `
+      select *
+      from transactions
+      where user_id = ?
+      order by occurred_at desc, created_at desc;
+    `,
+    userId
+  );
 }
 
-export async function getLocalBalance() {
+export async function getLocalBalance(userId: string) {
   const database = await getLocalDb();
-  const row = await database.getFirstAsync<BalanceRow>(`
-    select coalesce(
-      sum(
-        case
-          when type = 'income' then amount
-          when type = 'expense' then -amount
-          else 0
-        end
-      ),
-      0
-    ) as balance
-    from transactions;
-  `);
+  const row = await database.getFirstAsync<BalanceRow>(
+    `
+      select coalesce(
+        sum(
+          case
+            when type = 'income' then amount
+            when type = 'expense' then -amount
+            else 0
+          end
+        ),
+        0
+      ) as balance
+      from transactions
+      where user_id = ?;
+    `,
+    userId
+  );
 
   return Number(row?.balance ?? 0);
 }
 
-export async function getPendingLocalTransactions() {
+export async function getPendingLocalTransactions(userId: string) {
   const database = await getLocalDb();
 
-  return database.getAllAsync<LocalTransaction>(`
-    select *
-    from transactions
-    where sync_status in ('pending', 'failed')
-    order by created_at asc;
-  `);
+  return database.getAllAsync<LocalTransaction>(
+    `
+      select *
+      from transactions
+      where user_id = ? and sync_status in ('pending', 'failed')
+      order by created_at asc;
+    `,
+    userId
+  );
 }

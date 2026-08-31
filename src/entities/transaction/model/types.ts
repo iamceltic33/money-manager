@@ -4,6 +4,7 @@ export type LocalSyncStatus = 'pending' | 'synced' | 'failed';
 
 export type LocalTransaction = {
   id: string;
+  user_id: string;
   remote_id: string | null;
   type: LocalTransactionType;
   amount: number;
@@ -17,6 +18,7 @@ export type LocalTransaction = {
 };
 
 export type CreateLocalTransactionParams = {
+  userId: string;
   type: LocalTransactionType;
   amount: number;
   categoryId?: string | null;
@@ -25,6 +27,7 @@ export type CreateLocalTransactionParams = {
 };
 
 export type UpdateLocalTransactionParams = {
+  userId: string;
   id: string;
   type?: LocalTransactionType;
   amount?: number;

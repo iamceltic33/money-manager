@@ -1,11 +1,12 @@
 import { ArrowDownLeft, ArrowUpRight, Database, ReceiptText } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 
-import type { LocalTransaction } from '../model/types';
+import { CategoryIcon, useCategoryStore } from '@/entities/category';
 import { MaxContentWidth, Spacing } from '@/shared/config/theme';
 import { useTheme } from '@/shared/lib/theme/use-theme';
 import { ThemedText } from '@/shared/ui/themed-text';
 import { ThemedView } from '@/shared/ui/themed-view';
+import type { LocalTransaction } from '../model/types';
 
 type Props = {
   transaction: LocalTransaction;
@@ -61,6 +62,7 @@ export function TransactionDetails({ transaction }: Props) {
   const theme = useTheme();
   const isIncome = transaction.type === 'income';
   const Icon = isIncome ? ArrowDownLeft : ArrowUpRight;
+  const category = useCategoryStore((state) => state.getCategoryById(transaction.category_id));
 
   return (
     <ThemedView style={styles.container}>
@@ -75,11 +77,14 @@ export function TransactionDetails({ transaction }: Props) {
       >
         <View style={styles.header}>
           <View style={[styles.iconBadge, { backgroundColor: theme.background }]}>
+            {category ?
+            <CategoryIcon color={category.color ?? (isIncome ? styles.incomeText.color : styles.expenseText.color)} name={category.icon} />
+            :
             <Icon
               color={isIncome ? styles.incomeText.color : styles.expenseText.color}
               size={28}
               strokeWidth={2.4}
-            />
+            />}
           </View>
 
           <View style={styles.headerText}>
@@ -108,11 +113,10 @@ export function TransactionDetails({ transaction }: Props) {
         </View>
 
         <View style={styles.details}>
-          <DetailRow label="ID" value={transaction.id} />
+          {category?.name && <DetailRow label="Категория" value={category.name} />}
           <DetailRow label="Remote ID" value={formatNullableValue(transaction.remote_id)} />
           <DetailRow label="Тип" value={typeLabels[transaction.type]} />
           <DetailRow label="Сумма" value={`${currencyFormatter.format(transaction.amount)} KZT`} />
-          <DetailRow label="Категория" value={formatNullableValue(transaction.category_id)} />
           <DetailRow label="Дата операции" value={formatDate(transaction.occurred_at)} />
           <DetailRow label="Создано" value={formatDate(transaction.created_at)} />
           <DetailRow label="Обновлено" value={formatDate(transaction.updated_at)} />
