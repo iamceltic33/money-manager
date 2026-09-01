@@ -3,16 +3,20 @@ import { create } from 'zustand';
 
 import {
   createLocalTransaction,
+  deleteLocalTransaction,
   getLocalBalance,
   getLocalTransactions,
+  updateLocalTransaction,
 } from '../api/transactions';
 import type {
   CreateLocalTransactionParams,
   LocalTransaction,
   LocalTransactionType,
+  UpdateLocalTransactionParams,
 } from './types';
 
 type CreateTransactionParams = Omit<CreateLocalTransactionParams, 'amount' | 'type' | 'userId'>;
+type UpdateTransactionParams = Omit<UpdateLocalTransactionParams, 'userId'>;
 
 type Store = {
   userId: string | null;
@@ -27,6 +31,8 @@ type Store = {
     type: LocalTransactionType,
     params?: CreateTransactionParams
   ) => Promise<void>;
+  updateTransaction: (params: UpdateTransactionParams) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
   getTransaction: (id: string) => LocalTransaction | null;
 };
 
@@ -113,6 +119,46 @@ export const useTransactionsStore = create<Store>((set, get) => ({
         error,
         type === 'income' ? 'Не удалось добавить доход' : 'Не удалось добавить расход'
       );
+      throw error;
+    }
+  },
+  updateTransaction: async (params) => {
+    try {
+      const userId = getRequiredUserId();
+
+      await updateLocalTransaction({
+        ...params,
+        userId,
+      });
+
+      const summary = await getLocalSummary(userId);
+
+      set({
+        ...summary,
+        initialized: true,
+      });
+    } catch (error) {
+      showErrorToast(error, 'Не удалось обновить операцию');
+      throw error;
+    }
+  },
+  deleteTransaction: async (id) => {
+    try {
+      const userId = getRequiredUserId();
+
+      await deleteLocalTransaction({
+        id,
+        userId,
+      });
+
+      const summary = await getLocalSummary(userId);
+
+      set({
+        ...summary,
+        initialized: true,
+      });
+    } catch (error) {
+      showErrorToast(error, 'Не удалось удалить операцию');
       throw error;
     }
   },

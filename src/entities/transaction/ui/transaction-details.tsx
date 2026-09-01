@@ -1,21 +1,23 @@
-import { ArrowDownLeft, ArrowUpRight, Database, ReceiptText } from 'lucide-react-native';
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  ReceiptText,
+} from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
-
 import { CategoryIcon, useCategoryStore } from '@/entities/category';
 import { MaxContentWidth, Spacing } from '@/shared/config/theme';
 import { useTheme } from '@/shared/lib/theme/use-theme';
 import { ThemedText } from '@/shared/ui/themed-text';
 import { ThemedView } from '@/shared/ui/themed-view';
 import type { LocalTransaction } from '../model/types';
-
+import { Footer } from './transaction-details-footer';
+import { DetailRow } from './transaction-details-row';
 type Props = {
   transaction: LocalTransaction;
 };
-
 const currencyFormatter = new Intl.NumberFormat('ru-RU', {
   maximumFractionDigits: 2,
 });
-
 const dateTimeFormatter = new Intl.DateTimeFormat('ru-RU', {
   day: 'numeric',
   month: 'long',
@@ -23,47 +25,22 @@ const dateTimeFormatter = new Intl.DateTimeFormat('ru-RU', {
   hour: '2-digit',
   minute: '2-digit',
 });
-
-const syncStatusLabels: Record<LocalTransaction['sync_status'], string> = {
-  pending: 'Ожидает синхронизации',
-  synced: 'Синхронизировано',
-  failed: 'Ошибка синхронизации',
-};
-
 const typeLabels: Record<LocalTransaction['type'], string> = {
   income: 'Доход',
   expense: 'Расход',
 };
-
 function formatNullableValue(value: string | null) {
   return value ?? 'Не указано';
 }
-
 function formatDate(value: string) {
   return dateTimeFormatter.format(new Date(value));
 }
-
-function DetailRow(props: { label: string; value: string }) {
-  const theme = useTheme();
-
-  return (
-    <View style={[styles.row, { borderColor: theme.backgroundSelected }]}>
-      <ThemedText type="small" themeColor="textSecondary" style={styles.rowLabel}>
-        {props.label}
-      </ThemedText>
-      <ThemedText type="smallBold" style={styles.rowValue}>
-        {props.value}
-      </ThemedText>
-    </View>
-  );
-}
-
 export function TransactionDetails({ transaction }: Props) {
   const theme = useTheme();
   const isIncome = transaction.type === 'income';
   const Icon = isIncome ? ArrowDownLeft : ArrowUpRight;
   const category = useCategoryStore((state) => state.getCategoryById(transaction.category_id));
-
+  const accentColor = isIncome ? styles.incomeText.color : styles.expenseText.color;
   return (
     <ThemedView style={styles.container}>
       <View
@@ -77,16 +54,12 @@ export function TransactionDetails({ transaction }: Props) {
       >
         <View style={styles.header}>
           <View style={[styles.iconBadge, { backgroundColor: theme.background }]}>
-            {category ?
-            <CategoryIcon color={category.color ?? (isIncome ? styles.incomeText.color : styles.expenseText.color)} name={category.icon} />
-            :
-            <Icon
-              color={isIncome ? styles.incomeText.color : styles.expenseText.color}
-              size={28}
-              strokeWidth={2.4}
-            />}
+            {category ? (
+              <CategoryIcon color={category.color ?? accentColor} name={category.icon} />
+            ) : (
+              <Icon color={accentColor} size={28} strokeWidth={2.4} />
+            )}
           </View>
-
           <View style={styles.headerText}>
             <ThemedText type="small" themeColor="textSecondary">
               {typeLabels[transaction.type]}
@@ -99,7 +72,6 @@ export function TransactionDetails({ transaction }: Props) {
             </ThemedText>
           </View>
         </View>
-
         <View style={styles.noteBlock}>
           <ReceiptText color={theme.textSecondary} size={20} strokeWidth={2.3} />
           <View style={styles.noteContent}>
@@ -111,38 +83,17 @@ export function TransactionDetails({ transaction }: Props) {
             </ThemedText>
           </View>
         </View>
-
         <View style={styles.details}>
           {category?.name && <DetailRow label="Категория" value={category.name} />}
-          <DetailRow label="Remote ID" value={formatNullableValue(transaction.remote_id)} />
           <DetailRow label="Тип" value={typeLabels[transaction.type]} />
           <DetailRow label="Сумма" value={`${currencyFormatter.format(transaction.amount)} KZT`} />
           <DetailRow label="Дата операции" value={formatDate(transaction.occurred_at)} />
-          <DetailRow label="Создано" value={formatDate(transaction.created_at)} />
-          <DetailRow label="Обновлено" value={formatDate(transaction.updated_at)} />
         </View>
-
-        <View style={[styles.syncBlock, { borderColor: theme.backgroundSelected }]}>
-          <Database color={theme.textSecondary} size={20} strokeWidth={2.3} />
-          <View style={styles.syncContent}>
-            <ThemedText type="small" themeColor="textSecondary">
-              Статус синхронизации
-            </ThemedText>
-            <ThemedText type="smallBold">
-              {syncStatusLabels[transaction.sync_status]}
-            </ThemedText>
-            {transaction.sync_error ? (
-              <ThemedText type="small" style={styles.expenseText}>
-                {transaction.sync_error}
-              </ThemedText>
-            ) : null}
-          </View>
-        </View>
+      <Footer id={transaction.id}/>
       </View>
     </ThemedView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     width: '100%',
@@ -188,29 +139,6 @@ const styles = StyleSheet.create({
   },
   details: {
     gap: Spacing.two,
-  },
-  row: {
-    minHeight: 44,
-    borderTopWidth: 1,
-    paddingTop: Spacing.two,
-    gap: Spacing.half,
-  },
-  rowLabel: {
-    textTransform: 'uppercase',
-  },
-  rowValue: {
-    flexShrink: 1,
-  },
-  syncBlock: {
-    borderTopWidth: 1,
-    paddingTop: Spacing.three,
-    flexDirection: 'row',
-    gap: Spacing.three,
-    alignItems: 'flex-start',
-  },
-  syncContent: {
-    flex: 1,
-    gap: Spacing.half,
   },
   incomeText: {
     color: '#16A34A',

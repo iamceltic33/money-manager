@@ -6,13 +6,24 @@ type UserVersionRow = {
   user_version: number;
 };
 
+type TableRow = {
+  name: string;
+};
+
+type TableInfoRow = {
+  name: string;
+};
+
 export async function runLocalMigrations(database: SQLiteDatabase) {
   await database.execAsync('PRAGMA foreign_keys = ON;');
 
   const versionRow = await database.getFirstAsync<UserVersionRow>('PRAGMA user_version;');
   const currentVersion = versionRow?.user_version ?? 0;
 
-  if (currentVersion >= DATABASE_VERSION) return;
+  if (currentVersion >= DATABASE_VERSION) {
+    await ensureUserScopedSchema(database);
+    return;
+  }
 
   if (currentVersion < 1) {
     await database.execAsync(`
@@ -135,32 +146,31 @@ export async function runLocalMigrations(database: SQLiteDatabase) {
     await database.execAsync('PRAGMA foreign_keys = ON;');
   }
 
-  if (currentVersion < 3) {
-    await database.execAsync(`
-      alter table categories add column user_id text;
-      alter table transactions add column user_id text;
+  await ensureUserScopedSchema(database);
 
+  await database.execAsync(`PRAGMA user_version = ${DATABASE_VERSION};`);
+}
+
+async function ensureUserScopedSchema(database: SQLiteDatabase) {
+  await database.execAsync(`
+    create table if not exists local_users (
+      id text primary key not null,
+      created_at text not null,
+      initialized_at text not null
+    );
+  `);
+
+  if (await tableExists(database, 'categories')) {
+    if (!(await columnExists(database, 'categories', 'user_id'))) {
+      await database.execAsync('alter table categories add column user_id text;');
+    }
+
+    await database.execAsync(`
       create index if not exists categories_user_id_idx
       on categories(user_id);
 
       create index if not exists categories_user_type_idx
       on categories(user_id, type);
-
-      create index if not exists transactions_user_id_idx
-      on transactions(user_id);
-
-      create index if not exists transactions_user_occurred_at_idx
-      on transactions(user_id, occurred_at);
-    `);
-  }
-
-  if (currentVersion < 4) {
-    await database.execAsync(`
-      create table if not exists local_users (
-        id text primary key not null,
-        created_at text not null,
-        initialized_at text not null
-      );
 
       insert or ignore into local_users (
         id,
@@ -176,5 +186,36 @@ export async function runLocalMigrations(database: SQLiteDatabase) {
     `);
   }
 
-  await database.execAsync(`PRAGMA user_version = ${DATABASE_VERSION};`);
+  if (await tableExists(database, 'transactions')) {
+    if (!(await columnExists(database, 'transactions', 'user_id'))) {
+      await database.execAsync('alter table transactions add column user_id text;');
+    }
+
+    await database.execAsync(`
+      create index if not exists transactions_user_id_idx
+      on transactions(user_id);
+
+      create index if not exists transactions_user_occurred_at_idx
+      on transactions(user_id, occurred_at);
+    `);
+  }
+}
+
+async function tableExists(database: SQLiteDatabase, tableName: string) {
+  const table = await database.getFirstAsync<TableRow>(
+    `
+      select name
+      from sqlite_master
+      where type = 'table' and name = ?;
+    `,
+    tableName
+  );
+
+  return Boolean(table);
+}
+
+async function columnExists(database: SQLiteDatabase, tableName: string, columnName: string) {
+  const columns = await database.getAllAsync<TableInfoRow>(`PRAGMA table_info(${tableName});`);
+
+  return columns.some((column) => column.name === columnName);
 }

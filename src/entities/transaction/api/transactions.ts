@@ -2,6 +2,7 @@ import { getLocalDb } from '@/shared/api/local-db';
 
 import type {
   CreateLocalTransactionParams,
+  DeleteLocalTransactionParams,
   LocalTransaction,
   UpdateLocalTransactionParams,
 } from '../model/types';
@@ -119,6 +120,24 @@ export async function updateLocalTransaction(params: UpdateLocalTransactionParam
   }
 
   return updatedTransaction;
+}
+
+export async function deleteLocalTransaction(params: DeleteLocalTransactionParams) {
+  const database = await getLocalDb();
+  const currentTransaction = await getLocalTransactionById(params.userId, params.id);
+
+  if (!currentTransaction) {
+    throw new Error('Локальная операция не найдена');
+  }
+
+  await database.runAsync(
+    `
+      delete from transactions
+      where user_id = ? and id = ?;
+    `,
+    params.userId,
+    params.id
+  );
 }
 
 export async function getLocalTransactions(userId: string) {

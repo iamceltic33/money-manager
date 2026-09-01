@@ -1,11 +1,11 @@
-import { ThemedText } from "@/shared/ui/themed-text";
-import { ThemedView } from "@/shared/ui/themed-view";
-import { DateField } from "@/shared/ui/date-field";
+import { useTransactionsStore } from "@/entities/transaction";
+import { TransactionCategoryField } from "@/entities/category";
 import { MaxContentWidth, Spacing } from "@/shared/config/theme";
 import { useTheme } from "@/shared/lib/theme/use-theme";
 import { showSuccessToast } from "@/shared/model/toast-store";
-import { useTransactionsStore } from "@/entities/transaction";
-import { TransactionCategoryField } from "@/features/category/select-for-transaction";
+import { DateField } from "@/shared/ui/date-field";
+import { ThemedText } from "@/shared/ui/themed-text";
+import { ThemedView } from "@/shared/ui/themed-view";
 import { useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useState } from "react";
@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function AddExpense() {
     const theme = useTheme();
     const [textValue, setTextValue] = useState('');
+    const [note, setNote] = useState('');
     const { balance, createTransaction } = useTransactionsStore();
     const router = useRouter();
     const [date, setDate] = useState(new Date());
@@ -25,7 +26,11 @@ export default function AddExpense() {
         const amount = Number(textValue);
         if (isNaN(amount)) return;
         try {
-            await createTransaction(amount, 'expense', { occurredAt: date, categoryId });
+            await createTransaction(amount, 'expense', {
+                occurredAt: date,
+                categoryId,
+                note: note.trim() || null,
+            });
             showSuccessToast('Расход добавлен');
             router.replace('/');
         } catch {}
@@ -79,6 +84,7 @@ export default function AddExpense() {
                     },
                 ]}
                 value={textValue}
+                maxLength={256}
             />
 
             <DateField label="Дата расхода" value={date} onChange={setDate} maximumDate={new Date()}/>
@@ -88,6 +94,26 @@ export default function AddExpense() {
                 value={categoryId}
                 onChange={setCategoryId}
             />
+
+            <View style={styles.noteField}>
+                <ThemedText type="smallBold">Заметка</ThemedText>
+                <TextInput
+                    multiline
+                    onChangeText={setNote}
+                    placeholder="Например, продукты или такси"
+                    placeholderTextColor={theme.textSecondary}
+                    style={[
+                        styles.noteInput,
+                        {
+                            backgroundColor: theme.backgroundElement,
+                            borderColor: theme.backgroundSelected,
+                            color: theme.text,
+                        },
+                    ]}
+                    textAlignVertical="top"
+                    value={note}
+                />
+            </View>
 
             <Pressable
                 accessibilityRole="button"
@@ -146,6 +172,19 @@ const styles = StyleSheet.create({
         lineHeight: 38,
         fontWeight: '700',
         textAlign: 'center',
+    },
+    noteField: {
+        gap: Spacing.two,
+    },
+    noteInput: {
+        minHeight: 96,
+        borderWidth: 1,
+        borderRadius: 8,
+        paddingHorizontal: Spacing.three,
+        paddingVertical: Spacing.three,
+        fontSize: 16,
+        lineHeight: 22,
+        fontWeight: '500',
     },
     button: {
         minHeight: 52,

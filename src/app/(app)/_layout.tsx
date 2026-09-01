@@ -42,6 +42,7 @@ export default function TabLayout() {
           await initCategories(currentUserId);
         }
       } catch (error) {
+        console.error('Failed to prepare local data', error);
         showErrorToast(error, 'Не удалось подготовить локальные данные');
       }
     }

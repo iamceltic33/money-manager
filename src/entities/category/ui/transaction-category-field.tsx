@@ -10,16 +10,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import {
-  CATEGORY_ICON_OPTIONS,
-  CategoryIcon,
-  type CategoryIconName,
-  type LocalCategoryType,
-  useCategoryStore,
-} from '@/entities/category';
 import { Spacing } from '@/shared/config/theme';
 import { useTheme } from '@/shared/lib/theme/use-theme';
 import { ThemedText } from '@/shared/ui/themed-text';
+
+import { CATEGORY_ICON_OPTIONS, type CategoryIconName } from '../consts';
+import { useCategoryStore } from '../model/category-store';
+import type { LocalCategoryType } from '../model/types';
+import { CategoryIcon } from './category-icon';
 
 const DEFAULT_CATEGORY_COLORS: Record<LocalCategoryType, string> = {
   income: '#16A34A',
@@ -320,16 +318,15 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.42)',
+    backgroundColor: 'rgba(0, 0, 0, 0.46)',
   },
   modalSafeArea: {
     width: '100%',
   },
   modalCard: {
-    width: '100%',
     borderTopWidth: 1,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     padding: Spacing.four,
     gap: Spacing.three,
   },
@@ -341,8 +338,8 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   closeButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -357,7 +354,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     fontSize: 16,
     lineHeight: 22,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   iconGrid: {
     flexDirection: 'row',
@@ -365,8 +362,8 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   iconButton: {
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     borderWidth: 1,
     borderRadius: 8,
     alignItems: 'center',
@@ -379,14 +376,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#2563EB',
   },
+  disabledButton: {
+    opacity: 0.48,
+  },
   submitButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     lineHeight: 22,
     fontWeight: '700',
-  },
-  disabledButton: {
-    opacity: 0.5,
   },
   pressed: {
     opacity: 0.78,

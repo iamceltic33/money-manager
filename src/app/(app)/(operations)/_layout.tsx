@@ -1,5 +1,5 @@
-import { OperationSwitcher } from '@/widgets/operation-switcher';
 import { MaxContentWidth, Spacing } from '@/shared/config/theme';
+import { OperationSwitcher } from '@/widgets/operation-switcher';
 import { Stack } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 

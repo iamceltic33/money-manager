@@ -35,3 +35,8 @@ export type UpdateLocalTransactionParams = {
   note?: string | null;
   occurredAt?: Date;
 };
+
+export type DeleteLocalTransactionParams = {
+  userId: string;
+  id: string;
+};
