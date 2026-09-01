@@ -3,6 +3,7 @@ import { create } from 'zustand';
 
 import {
   createLocalCategory,
+  deleteLocalCategory,
   getLocalCategories,
   updateLocalCategory,
 } from '../api/categories';
@@ -24,6 +25,7 @@ type CategoryStore = {
   refresh: () => Promise<void>;
   createCategory: (params: CreateCategoryParams) => Promise<LocalCategory>;
   updateCategory: (params: UpdateCategoryParams) => Promise<LocalCategory>;
+  deleteCategory: (id: string) => Promise<void>;
   getCategoryById: (id?: string | null) => LocalCategory | null;
 };
 
@@ -124,6 +126,21 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
       return category;
     } catch (error) {
       showErrorToast(error, 'Не удалось обновить категорию');
+      throw error;
+    }
+  },
+  deleteCategory: async (id) => {
+    try {
+      const userId = getRequiredUserId();
+
+      await deleteLocalCategory(userId, id);
+
+      set((state) => ({
+        categories: state.categories.filter((category) => category.id !== id),
+        initialized: true,
+      }));
+    } catch (error) {
+      showErrorToast(error, 'Не удалось удалить категорию');
       throw error;
     }
   },

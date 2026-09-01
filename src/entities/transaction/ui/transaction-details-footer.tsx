@@ -35,8 +35,8 @@ export function Footer(props: Props) {
       {
         text: 'Удалить',
         style: 'destructive',
-        onPress: () => {
-          deleteTransaction(id);
+        onPress: async () => {
+          await deleteTransaction(id);
           if (router.canGoBack()) {
             router.back();
           } else {

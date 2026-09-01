@@ -1,9 +1,8 @@
 import { ThemedText } from "@/shared/ui/themed-text";
 import { ThemedView } from "@/shared/ui/themed-view";
-import { TransactionDetails } from "@/entities/transaction";
+import { TransactionDetails, useTransactionsStore } from "@/entities/transaction";
 import { MaxContentWidth, Spacing } from "@/shared/config/theme";
 import { useTheme } from "@/shared/lib/theme/use-theme";
-import { useTransactionsStore } from "@/entities/transaction";
 import { useLocalSearchParams } from "expo-router";
 import { SearchX } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
