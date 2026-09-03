@@ -1,4 +1,5 @@
 import { TransactionCategoryField } from "@/entities/category";
+import { formatTransactionAmountInput, isTransactionAmountInputAllowed, parseTransactionAmountInput } from "@/entities/transaction";
 import { MaxContentWidth, Spacing } from "@/shared/config";
 import { useTheme } from "@/shared/lib/theme";
 import { DateField, ThemedText } from "@/shared/ui";
@@ -27,37 +28,43 @@ const buttonColors: Record<Props['type'], string> = {
     expense: '#DC2626',
 };
 
-function parseAmount(value: string) {
-    const normalizedValue = value.trim().replace(',', '.');
-
-    if (!/^\d+(\.\d+)?$/.test(normalizedValue)) {
-        return null;
-    }
-
-    const amount = Number(normalizedValue);
-
-    return amount > 0 ? amount : null;
-}
-
 export function TransactionForm(props: Props) {
     const { defaultValues } = props;
     const theme = useTheme();
-    const [amountText, setAmountText] = useState<string>(defaultValues?.amount?.toString() ?? '');
+    const [amountText, setAmountText] = useState<string>(
+        defaultValues?.amount === undefined ? '' : formatTransactionAmountInput(defaultValues.amount)
+    );
     const [date, setDate] = useState(defaultValues?.date ?? new Date());
     const [categoryId, setCategoryId] = useState<string | null>(defaultValues?.categoryId ?? null);
     const [note, setNote] = useState(defaultValues?.note ?? '');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const isSubmitDisabled = !amountText.trim() || isSubmitting;
 
-    const onSubmit = () => {
-        const amount = parseAmount(amountText);
+    const onAmountChange = (value: string) => {
+        if (isTransactionAmountInputAllowed(value)) {
+            setAmountText(value);
+        }
+    };
+
+    const onSubmit = async () => {
+        if (isSubmitting) return;
+
+        const amount = parseTransactionAmountInput(amountText);
 
         if (!amount) return;
 
-        props.onSubmit({
-            amount,
-            date,
-            note: note.trim() || null,
-            categoryId,
-        });
+        setIsSubmitting(true);
+
+        try {
+            await props.onSubmit({
+                amount,
+                date,
+                note: note.trim() || null,
+                categoryId,
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return <View style={styles.content}>
@@ -67,7 +74,7 @@ export function TransactionForm(props: Props) {
         <TextInput
             inputMode="decimal"
             keyboardType="decimal-pad"
-            onChangeText={setAmountText}
+            onChangeText={onAmountChange}
             placeholder="0"
             placeholderTextColor={theme.textSecondary}
             style={[
@@ -112,14 +119,26 @@ export function TransactionForm(props: Props) {
 
         <Pressable
             accessibilityRole="button"
+            disabled={isSubmitDisabled}
             onPress={onSubmit}
             style={({ pressed }) => [
                 styles.button,
-                { backgroundColor: buttonColors[props.type] },
-                pressed && styles.pressed,
+                {
+                    backgroundColor: isSubmitDisabled
+                        ? theme.backgroundSelected
+                        : buttonColors[props.type],
+                },
+                pressed && !isSubmitDisabled && styles.pressed,
             ]}
         >
-            <ThemedText style={styles.buttonText}>{props.buttonText}</ThemedText>
+            <ThemedText
+                style={[
+                    styles.buttonText,
+                    isSubmitDisabled && { color: theme.textSecondary },
+                ]}
+            >
+                {props.buttonText}
+            </ThemedText>
         </Pressable>
     </View>
 }

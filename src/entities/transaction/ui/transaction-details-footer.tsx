@@ -36,12 +36,15 @@ export function Footer(props: Props) {
         text: 'Удалить',
         style: 'destructive',
         onPress: async () => {
-          await deleteTransaction(id);
-          if (router.canGoBack()) {
-            router.back();
-          } else {
-            router.replace('/');
-          }
+          try {
+            await deleteTransaction(id);
+
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/');
+            }
+          } catch {}
         },
       },
     ]);

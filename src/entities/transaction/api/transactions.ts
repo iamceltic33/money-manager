@@ -1,5 +1,7 @@
 import { getLocalDb } from '@/shared/api/local-db';
 
+import { normalizeTransactionAmount } from '../lib';
+
 import type {
   CreateLocalTransactionParams,
   DeleteLocalTransactionParams,
@@ -23,6 +25,7 @@ export async function createLocalTransaction(params: CreateLocalTransactionParam
   const database = await getLocalDb();
   const now = new Date().toISOString();
   const id = createLocalId();
+  const amount = normalizeTransactionAmount(params.amount);
 
   await database.runAsync(
     `
@@ -46,7 +49,7 @@ export async function createLocalTransaction(params: CreateLocalTransactionParam
     params.userId,
     null,
     params.type,
-    params.amount,
+    amount,
     params.categoryId ?? null,
     params.note ?? null,
     params.occurredAt?.toISOString() ?? now,
@@ -87,6 +90,10 @@ export async function updateLocalTransaction(params: UpdateLocalTransactionParam
     throw new Error('Локальная операция не найдена');
   }
 
+  const amount = params.amount === undefined
+    ? currentTransaction.amount
+    : normalizeTransactionAmount(params.amount);
+
   await database.runAsync(
     `
       update transactions
@@ -102,7 +109,7 @@ export async function updateLocalTransaction(params: UpdateLocalTransactionParam
       where user_id = ? and id = ?;
     `,
     params.type ?? currentTransaction.type,
-    params.amount ?? currentTransaction.amount,
+    amount,
     params.categoryId === undefined ? currentTransaction.category_id : params.categoryId,
     params.note === undefined ? currentTransaction.note : params.note,
     params.occurredAt?.toISOString() ?? currentTransaction.occurred_at,

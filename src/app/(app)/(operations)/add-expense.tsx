@@ -54,7 +54,7 @@ export default function AddExpense() {
                     </ThemedText>
                 </View>
             </View>
-
+            {/* TODO:  обработка суммы, которая будет делать баланс отрицательным. */}
             <TransactionForm
                 type="expense"
                 onSubmit={addExpense}
