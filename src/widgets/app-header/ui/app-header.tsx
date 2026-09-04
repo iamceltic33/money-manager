@@ -1,4 +1,4 @@
-import { LogOut, Menu, X } from 'lucide-react-native';
+import { LogOut, Menu, Shapes, X } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
     Animated,
@@ -9,6 +9,7 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/shared/ui/themed-text';
 import { ThemedView } from '@/shared/ui/themed-view';
@@ -21,6 +22,7 @@ const DRAWER_WIDTH = 300;
 
 export function AppHeader() {
   const theme = useTheme();
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const drawerPosition = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
@@ -33,6 +35,11 @@ export function AppHeader() {
       useNativeDriver: true,
     }).start();
   }, [drawerPosition, drawerWidth, isMenuOpen]);
+
+  function openCategories() {
+    setIsMenuOpen(false);
+    router.push('/categories');
+  }
 
   async function handleSignOut() {
     try {
@@ -121,6 +128,19 @@ export function AppHeader() {
               <View style={styles.drawerContent}>
                 <Pressable
                   accessibilityRole="button"
+                  onPress={openCategories}
+                  style={({ pressed }) => [
+                    styles.menuItem,
+                    { backgroundColor: theme.backgroundElement },
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Shapes color={theme.text} size={20} strokeWidth={2.2} />
+                  <ThemedText type="smallBold">Категории</ThemedText>
+                </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
                   onPress={handleSignOut}
                   style={({ pressed }) => [
                     styles.menuItem,
@@ -204,6 +224,7 @@ const styles = StyleSheet.create({
   },
   drawerContent: {
     padding: Spacing.three,
+    gap: Spacing.two,
   },
   menuItem: {
     minHeight: 52,

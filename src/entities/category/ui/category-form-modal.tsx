@@ -46,7 +46,7 @@ type Props = {
   type: LocalCategoryType;
   category?: LocalCategory | null;
   onClose: () => void;
-  onSubmit: (values: SubmitValues) => Promise<void> | void;
+  onSubmit: (values: SubmitValues, id?: string) => Promise<void> | void;
   onDelete?: (category: LocalCategory) => Promise<void> | void;
 };
 
@@ -89,7 +89,7 @@ export function CategoryFormModal({ visible, type, category, onClose, onSubmit, 
     setSelectedColor(category?.color ?? DEFAULT_CATEGORY_COLORS[type]);
   }, [category, type, visible]);
 
-  async function handleSubmit() {
+  const handleSubmit = async () => {
     const trimmedName = name.trim();
 
     if (!trimmedName) return;
@@ -98,10 +98,10 @@ export function CategoryFormModal({ visible, type, category, onClose, onSubmit, 
       name: trimmedName,
       icon: selectedIcon,
       color: selectedColor,
-    });
+    }, category?.id);
   }
 
-  function confirmDelete() {
+  const confirmDelete = () => {
     if (!category || !onDelete) return;
 
     Alert.alert('Удалить категорию?', 'Операции останутся, но категория у них будет очищена.', [

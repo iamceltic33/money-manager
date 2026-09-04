@@ -53,6 +53,43 @@ function getRequiredUserId() {
   return userId;
 }
 
+function getCategoryUpdatePatch(
+  currentCategory: LocalCategory,
+  params: UpdateCategoryParams
+): UpdateCategoryParams | null {
+  const patch: UpdateCategoryParams = { id: params.id };
+
+  if (params.type !== undefined && params.type !== currentCategory.type) {
+    patch.type = params.type;
+  }
+
+  if (params.name !== undefined) {
+    const name = params.name.trim();
+
+    if (!name) {
+      throw new Error('Название категории не может быть пустым');
+    }
+
+    if (name !== currentCategory.name) {
+      patch.name = name;
+    }
+  }
+
+  if (params.color !== undefined && params.color !== currentCategory.color) {
+    patch.color = params.color;
+  }
+
+  if (params.icon !== undefined && params.icon !== currentCategory.icon) {
+    patch.icon = params.icon;
+  }
+
+  if (params.sortOrder !== undefined && params.sortOrder !== currentCategory.sort_order) {
+    patch.sortOrder = params.sortOrder;
+  }
+
+  return Object.keys(patch).length > 1 ? patch : null;
+}
+
 export const useCategoryStore = create<CategoryStore>((set, get) => ({
   userId: null,
   categories: [],
@@ -110,9 +147,21 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
   },
   updateCategory: async (params) => {
     try {
+      const currentCategory = get().categories.find((category) => category.id === params.id);
+
+      if (!currentCategory) {
+        throw new Error('Категория не найдена');
+      }
+
+      const patch = getCategoryUpdatePatch(currentCategory, params);
+
+      if (!patch) {
+        return currentCategory;
+      }
+
       const userId = getRequiredUserId();
       const category = await updateLocalCategory({
-        ...params,
+        ...patch,
         userId,
       });
 
