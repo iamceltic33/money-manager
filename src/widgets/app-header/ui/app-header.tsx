@@ -1,22 +1,23 @@
+import { useRouter } from 'expo-router';
 import { LogOut, Menu, Shapes, X } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-    Animated,
-    Modal,
-    Pressable,
-    StyleSheet,
-    useWindowDimensions,
-    View,
+  Animated,
+  Modal,
+  Pressable,
+  StyleSheet,
+  useWindowDimensions,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 
-import { ThemedText } from '@/shared/ui/themed-text';
-import { ThemedView } from '@/shared/ui/themed-view';
+import { useTransactionsStore } from '@/entities/transaction';
+import { signOut } from '@/shared/api/supabase/authorization';
 import { Spacing } from '@/shared/config/theme';
 import { useTheme } from '@/shared/lib/theme/use-theme';
-import { signOut } from '@/shared/api/supabase/authorization';
 import { showErrorToast } from '@/shared/model/toast-store';
+import { ThemedText } from '@/shared/ui/themed-text';
+import { ThemedView } from '@/shared/ui/themed-view';
 
 const DRAWER_WIDTH = 300;
 
@@ -24,9 +25,17 @@ export function AppHeader() {
   const theme = useTheme();
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const { balance, initialized } = useTransactionsStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const drawerPosition = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const drawerWidth = Math.min(DRAWER_WIDTH, width * 0.86);
+  const formattedBalance = useMemo(
+    () =>
+      new Intl.NumberFormat('ru-RU', {
+        maximumFractionDigits: 0,
+      }).format(balance),
+    [balance]
+  );
 
   useEffect(() => {
     Animated.timing(drawerPosition, {
@@ -68,12 +77,34 @@ export function AppHeader() {
               <Menu color={theme.text} size={22} strokeWidth={2.2} />
             </Pressable>
 
-            <View style={styles.titleBlock}>
-              <ThemedText type="smallBold">Money Manager</ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                Финансы
+            <View
+              accessibilityLabel={
+                initialized
+                  ? `Общий баланс ${formattedBalance} KZT`
+                  : 'Общий баланс загружается'
+              }
+              style={[
+                styles.balancePill,
+                {
+                  backgroundColor: theme.backgroundElement,
+                  borderColor: theme.backgroundSelected,
+                },
+              ]}
+            >
+              <ThemedText type="small" themeColor="textSecondary" style={styles.balanceLabel}>
+                Баланс
               </ThemedText>
+              <View style={styles.balanceValue}>
+                <ThemedText type="smallBold" numberOfLines={1} adjustsFontSizeToFit>
+                  {initialized ? formattedBalance : '...'}
+                </ThemedText>
+                <ThemedText type="small" themeColor="textSecondary">
+                  KZT
+                </ThemedText>
+              </View>
             </View>
+
+            <View style={styles.headerSpacer} />
           </View>
         </SafeAreaView>
       </ThemedView>
@@ -174,8 +205,8 @@ const styles = StyleSheet.create({
     minHeight: 64,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.three,
-    gap: Spacing.three,
   },
   iconButton: {
     width: 44,
@@ -184,8 +215,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  titleBlock: {
-    gap: 0,
+  balancePill: {
+    minWidth: 112,
+    maxWidth: 180,
+    minHeight: 44,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.one,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerSpacer: {
+    width: 44,
+    height: 44,
+  },
+  balanceLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  balanceValue: {
+    maxWidth: '100%',
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: Spacing.one,
   },
   pressed: {
     opacity: 0.72,

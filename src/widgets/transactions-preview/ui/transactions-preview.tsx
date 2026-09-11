@@ -1,12 +1,13 @@
+import { Link } from 'expo-router';
+import { ChevronRight } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { CategoryIcon, useCategoryStore } from '@/entities/category';
-import { LocalTransaction } from '@/entities/transaction';
+import type { LocalTransaction } from '@/entities/transaction';
 import { Spacing } from '@/shared/config/theme';
 import { useTheme } from '@/shared/lib/theme/use-theme';
 import { ThemedText } from '@/shared/ui/themed-text';
 import { ThemedView } from '@/shared/ui/themed-view';
-import { Link } from 'expo-router';
 
 type Props = {
   transactions: LocalTransaction[]
@@ -28,9 +29,25 @@ export function TransactionsPreview(props: Props) {
       ]}
     >
       <View style={styles.header}>
-        <View>
-          <ThemedText type="smallBold">Последние операции</ThemedText>
-        </View>
+        <ThemedText numberOfLines={1} type="smallBold" style={styles.headerTitle}>Последние операции</ThemedText>
+
+        <Link href="/transactions" asChild>
+          <Pressable
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.historyButton,
+              { backgroundColor: theme.background },
+              pressed && styles.pressed,
+            ]}
+          >
+            <View style={styles.historyButtonContent}>
+              <ThemedText numberOfLines={1} type="smallBold" style={styles.historyButtonText}>
+                Все
+              </ThemedText>
+              <ChevronRight color="#2563EB" size={18} strokeWidth={2.4} />
+            </View>
+          </Pressable>
+        </Link>
       </View>
 
       <View style={styles.list}>
@@ -73,9 +90,35 @@ const styles = StyleSheet.create({
     gap: Spacing.four,
   },
   header: {
+    minHeight: 36,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.two,
+  },
+  headerTitle: {
+    flex: 1,
+    minWidth: 0,
+  },
+  historyButton: {
+    flexShrink: 0,
+    height: 36,
+    borderRadius: 8,
+    paddingLeft: Spacing.three,
+    paddingRight: Spacing.two,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  historyButtonContent: {
+    minWidth: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.half,
+  },
+  historyButtonText: {
+    color: '#2563EB',
+    flexShrink: 0,
   },
   list: {
     gap: Spacing.three,
@@ -106,5 +149,8 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     opacity: 0.7,
+  },
+  pressed: {
+    opacity: 0.78,
   },
 });

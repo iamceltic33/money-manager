@@ -1,7 +1,7 @@
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Calendar } from 'lucide-react-native';
-import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/shared/ui/themed-text';
 import { Spacing } from '@/shared/config/theme';
@@ -19,12 +19,26 @@ export function DateField(props: Props) {
   const { value, label, onChange, minimumDate, maximumDate = new Date() } = props;
   const theme = useTheme();
   const [isPickerVisible, setIsPickerVisible] = useState(false);
+  const [webDateText, setWebDateText] = useState(formatDateInputValue(value));
 
-  const formattedDate = new Intl.DateTimeFormat('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(value);
+  const formattedDate = useMemo(
+    () =>
+      new Intl.DateTimeFormat('ru-RU', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }).format(value),
+    [value]
+  );
+
+  useEffect(() => {
+    setWebDateText(formatDateInputValue(value));
+  }, [value]);
+
+  const changeDate = (date: Date) => {
+    onChange(date);
+    setWebDateText(formatDateInputValue(date));
+  };
 
   const handlePress = () => {
     if (Platform.OS === 'android') {
@@ -35,7 +49,7 @@ export function DateField(props: Props) {
         maximumDate,
         onValueChange: (_, date) => {
           if (date) {
-            onChange(date);
+            changeDate(date);
           }
         },
       });
@@ -47,15 +61,27 @@ export function DateField(props: Props) {
       return;
     }
 
-    // TODO: Add a web date picker fallback for React Native Web.
+    setIsPickerVisible((currentValue) => !currentValue);
   };
 
   const handleIOSChange = (_: unknown, date?: Date) => {
     if (date) {
-      onChange(date);
+      changeDate(date);
     }
 
     setIsPickerVisible(false);
+  };
+
+  const handleWebDateChange = (text: string) => {
+    setWebDateText(text);
+
+    const date = parseDateInputValue(text);
+
+    if (!date) return;
+    if (minimumDate && date < startOfDay(minimumDate)) return;
+    if (maximumDate && date > endOfDay(maximumDate)) return;
+
+    onChange(date);
   };
 
   return (
@@ -77,6 +103,25 @@ export function DateField(props: Props) {
         <ThemedText style={styles.value}>{formattedDate}</ThemedText>
         <Calendar color={theme.textSecondary} size={20} strokeWidth={2.3} />
       </Pressable>
+
+      {Platform.OS === 'web' && isPickerVisible ? (
+        <TextInput
+          accessibilityLabel={label}
+          inputMode="numeric"
+          onChangeText={handleWebDateChange}
+          placeholder="ГГГГ-ММ-ДД"
+          placeholderTextColor={theme.textSecondary}
+          style={[
+            styles.webInput,
+            {
+              backgroundColor: theme.backgroundElement,
+              borderColor: theme.backgroundSelected,
+              color: theme.text,
+            },
+          ]}
+          value={webDateText}
+        />
+      ) : null}
 
       {Platform.OS === 'ios' && isPickerVisible ? (
         <View
@@ -100,6 +145,46 @@ export function DateField(props: Props) {
       ) : null}
     </View>
   );
+}
+
+function formatDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
+function parseDateInputValue(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+
+  if (!match) return null;
+
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+
+  if (
+    date.getFullYear() !== Number(match[1]) ||
+    date.getMonth() !== Number(match[2]) - 1 ||
+    date.getDate() !== Number(match[3])
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+function startOfDay(date: Date) {
+  const nextDate = new Date(date);
+  nextDate.setHours(0, 0, 0, 0);
+
+  return nextDate;
+}
+
+function endOfDay(date: Date) {
+  const nextDate = new Date(date);
+  nextDate.setHours(23, 59, 59, 999);
+
+  return nextDate;
 }
 
 const styles = StyleSheet.create({
@@ -126,5 +211,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 8,
     overflow: 'hidden',
+  },
+  webInput: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: Spacing.three,
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '500',
   },
 });
