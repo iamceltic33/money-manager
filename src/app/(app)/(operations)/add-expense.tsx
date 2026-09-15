@@ -15,12 +15,13 @@ export default function AddExpense() {
     const { balance, createTransaction } = useTransactionsStore();
     const router = useRouter();
 
-    const addExpense = async ({ note, amount, categoryId, date }: TransactionFormValues) => {
+    const addExpense = async ({ note, amount, categoryId, date, excludeFromAverage }: TransactionFormValues) => {
         try {
             await createTransaction(amount, 'expense', {
                 occurredAt: date,
                 categoryId,
                 note,
+                excludeFromAverage
             });
             showSuccessToast('Расход добавлен');
             router.replace('/');
@@ -54,7 +55,6 @@ export default function AddExpense() {
                     </ThemedText>
                 </View>
             </View>
-            {/* TODO:  обработка суммы, которая будет делать баланс отрицательным. */}
             <TransactionForm
                 type="expense"
                 onSubmit={addExpense}

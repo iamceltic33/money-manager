@@ -3,6 +3,7 @@ import { formatTransactionAmountInput, isTransactionAmountInputAllowed, parseTra
 import { MaxContentWidth, Spacing } from "@/shared/config";
 import { useTheme } from "@/shared/lib/theme";
 import { DateField, ThemedText } from "@/shared/ui";
+import { CheckboxField } from '@/shared/ui/checkbox-field';
 import { useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 
@@ -11,6 +12,7 @@ export type TransactionFormValues = {
     amount: number;
     categoryId: string | null;
     date: Date;
+    excludeFromAverage?: boolean;
 };
 
 type Props = {
@@ -38,6 +40,7 @@ export function TransactionForm(props: Props) {
     const [categoryId, setCategoryId] = useState<string | null>(defaultValues?.categoryId ?? null);
     const [note, setNote] = useState(defaultValues?.note ?? '');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [excludeFromAverage, setExcludeFromAverage] = useState(defaultValues?.excludeFromAverage ?? false);
     const isSubmitDisabled = !amountText.trim() || isSubmitting;
 
     const onAmountChange = (value: string) => {
@@ -61,6 +64,7 @@ export function TransactionForm(props: Props) {
                 date,
                 note: note.trim() || null,
                 categoryId,
+                excludeFromAverage
             });
         } finally {
             setIsSubmitting(false);
@@ -116,6 +120,14 @@ export function TransactionForm(props: Props) {
                 value={note}
             />
         </View>
+
+        {props.type === 'expense' ? (
+            <CheckboxField
+                label="Не учитывать в прогнозе"
+                checked={excludeFromAverage}
+                onChange={setExcludeFromAverage}
+            />
+        ) : null}
 
         <Pressable
             accessibilityRole="button"

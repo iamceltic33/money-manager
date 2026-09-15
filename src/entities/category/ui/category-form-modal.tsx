@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Spacing } from '@/shared/config/theme';
 import { useTheme } from '@/shared/lib/theme/use-theme';
+import { CheckboxField } from '@/shared/ui/checkbox-field';
 import { ThemedText } from '@/shared/ui/themed-text';
 
 import { CATEGORY_ICONS, CATEGORY_ICON_OPTIONS, type CategoryIconName } from '../consts';
@@ -39,6 +40,7 @@ type SubmitValues = {
   name: string;
   icon: CategoryIconName;
   color: string;
+  excludeFromAverage?: boolean;
 };
 
 type Props = {
@@ -65,6 +67,7 @@ function getInitialIcon(type: LocalCategoryType, category?: LocalCategory | null
 export function CategoryFormModal({ visible, type, category, onClose, onSubmit, onDelete }: Props) {
   const theme = useTheme();
   const [name, setName] = useState('');
+  const [excludeFromAverage, setExcludeFromAverage] = useState(false);
   const [selectedIcon, setSelectedIcon] = useState<CategoryIconName>(getInitialIcon(type, category));
   const [selectedColor, setSelectedColor] = useState(DEFAULT_CATEGORY_COLORS[type]);
   const isEditMode = Boolean(category);
@@ -85,6 +88,7 @@ export function CategoryFormModal({ visible, type, category, onClose, onSubmit, 
     if (!visible) return;
 
     setName(category?.name ?? '');
+    setExcludeFromAverage(category?.exclude_from_average === 1);
     setSelectedIcon(getInitialIcon(type, category));
     setSelectedColor(category?.color ?? DEFAULT_CATEGORY_COLORS[type]);
   }, [category, type, visible]);
@@ -98,6 +102,7 @@ export function CategoryFormModal({ visible, type, category, onClose, onSubmit, 
       name: trimmedName,
       icon: selectedIcon,
       color: selectedColor,
+      excludeFromAverage
     }, category?.id);
   }
 
@@ -227,6 +232,14 @@ export function CategoryFormModal({ visible, type, category, onClose, onSubmit, 
                 })}
               </ScrollView>
             </View>
+
+            {isEditMode ? (
+              <CheckboxField
+                label="Не учитывать в прогнозе"
+                checked={excludeFromAverage}
+                onChange={setExcludeFromAverage}
+              />
+            ) : null}
 
             <View style={styles.actions}>
               <Pressable

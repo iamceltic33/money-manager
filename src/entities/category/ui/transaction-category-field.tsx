@@ -52,7 +52,7 @@ export function TransactionCategoryField({ type, value, onChange }: Props) {
     setEditableCategory(null);
   }
 
-  async function handleSubmitCategory(values: { name: string; icon: CategoryIconName; color: string }) {
+  async function handleSubmitCategory(values: { name: string; icon: CategoryIconName; color: string, excludeFromAverage?: boolean }) {
     try {
       if (editableCategory) {
         await updateCategory({
@@ -60,6 +60,7 @@ export function TransactionCategoryField({ type, value, onChange }: Props) {
           name: values.name,
           icon: values.icon,
           color: values.color,
+          excludeFromAverage: values.excludeFromAverage
         });
       } else {
         const category = await createCategory({
@@ -67,6 +68,7 @@ export function TransactionCategoryField({ type, value, onChange }: Props) {
           name: values.name,
           icon: values.icon,
           color: values.color,
+          excludeFromAverage: values.excludeFromAverage
         });
 
         onChange(category.id);

@@ -17,10 +17,10 @@ export default function EditTransactionPage() {
   const router = useRouter();
 
   const onSubmit = async (_values: TransactionFormValues) => {
-    const { note, amount, date, categoryId } = _values;
+    const { note, amount, date, categoryId, excludeFromAverage } = _values;
     try {
       await updateTransaction({
-        id: params.id, note, amount, occurredAt: date, categoryId
+        id: params.id, note, amount, occurredAt: date, categoryId, ...(transaction?.type === 'expense' ? { excludeFromAverage } : {})
       });
       if (router.canGoBack()) {
         router.back();
@@ -62,6 +62,7 @@ export default function EditTransactionPage() {
     <ThemedView style={styles.container}>
       <SafeAreaView edges={['bottom']} style={styles.content}>
         <TransactionForm
+          key={transaction.id}
           type={transaction.type}
           onSubmit={onSubmit}
           buttonText="Сохранить изменения"
@@ -73,6 +74,7 @@ export default function EditTransactionPage() {
             categoryId: transaction.category_id,
             date: new Date(transaction.occurred_at),
             note: transaction.note,
+            excludeFromAverage: transaction.exclude_from_average === 1,
           }}
         />
       </SafeAreaView>

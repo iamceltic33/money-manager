@@ -30,7 +30,7 @@ export function CategoryGrid({ type }: Props) {
     [allCategories, type]
   );
 
-  const handleSubmitCategory = async (values: { name: string; icon: CategoryIconName; color: string }) => {
+  const handleSubmitCategory = async (values: { name: string; icon: CategoryIconName; color: string; excludeFromAverage?: boolean }) => {
     try {
       if (selectedCategory) {
         await updateCategory({
@@ -39,6 +39,7 @@ export function CategoryGrid({ type }: Props) {
           name: values.name,
           icon: values.icon,
           color: values.color,
+          excludeFromAverage: values.excludeFromAverage,
         });
       } else {
         await createCategory({
@@ -46,6 +47,7 @@ export function CategoryGrid({ type }: Props) {
           name: values.name,
           icon: values.icon,
           color: values.color,
+          excludeFromAverage: values.excludeFromAverage,
         });
       }
 

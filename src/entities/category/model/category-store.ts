@@ -87,6 +87,11 @@ function getCategoryUpdatePatch(
     patch.sortOrder = params.sortOrder;
   }
 
+  if (params.excludeFromAverage !== undefined
+    && params.excludeFromAverage !== (currentCategory.exclude_from_average === 1)) {
+    patch.excludeFromAverage = params.excludeFromAverage;
+  }
+
   return Object.keys(patch).length > 1 ? patch : null;
 }
 
