@@ -34,9 +34,10 @@ export async function createLocalCategory(params: CreateLocalCategoryParams) {
         created_at,
         updated_at,
         sync_status,
-        sync_error
+        sync_error,
+        exclude_from_average
       )
-      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     `,
     id,
     params.userId,
@@ -49,7 +50,8 @@ export async function createLocalCategory(params: CreateLocalCategoryParams) {
     now,
     now,
     'pending',
-    null
+    null,
+    params.excludeFromAverage ? 1 : 0
   );
 
   const category = await getLocalCategoryById(params.userId, id);
@@ -121,7 +123,8 @@ export async function updateLocalCategory(params: UpdateLocalCategoryParams) {
         sort_order = ?,
         updated_at = ?,
         sync_status = ?,
-        sync_error = ?
+        sync_error = ?,
+        exclude_from_average = ?
       where user_id = ? and id = ?;
     `,
     params.type ?? currentCategory.type,
@@ -132,6 +135,9 @@ export async function updateLocalCategory(params: UpdateLocalCategoryParams) {
     new Date().toISOString(),
     'pending',
     null,
+    params.excludeFromAverage === undefined
+      ? currentCategory.exclude_from_average
+      : params.excludeFromAverage ? 1 : 0,
     params.userId,
     params.id
   );

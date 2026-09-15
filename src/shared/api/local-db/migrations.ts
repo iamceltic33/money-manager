@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-const DATABASE_VERSION = 4;
+const DATABASE_VERSION = 5;
 
 type UserVersionRow = {
   user_version: number;
@@ -148,7 +148,18 @@ export async function runLocalMigrations(database: SQLiteDatabase) {
 
   await ensureUserScopedSchema(database);
 
-  await database.execAsync(`PRAGMA user_version = ${DATABASE_VERSION};`);
+  await database.withTransactionAsync(async () => {
+    if (currentVersion < 5) {
+      await database.execAsync(`
+        alter table categories add column exclude_from_average integer not null default 0
+          check (exclude_from_average in (0, 1));
+        alter table transactions add column exclude_from_average integer not null default 0
+          check (exclude_from_average in (0, 1));
+      `);
+    }
+
+    await database.execAsync(`PRAGMA user_version = ${DATABASE_VERSION};`);
+  });
 }
 
 async function ensureUserScopedSchema(database: SQLiteDatabase) {

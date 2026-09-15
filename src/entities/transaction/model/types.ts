@@ -15,6 +15,7 @@ export type LocalTransaction = {
   updated_at: string;
   sync_status: LocalSyncStatus;
   sync_error: string | null;
+  exclude_from_average: 0 | 1;
 };
 
 export type CreateLocalTransactionParams = {
@@ -24,6 +25,7 @@ export type CreateLocalTransactionParams = {
   categoryId?: string | null;
   note?: string | null;
   occurredAt?: Date;
+  excludeFromAverage?: boolean;
 };
 
 export type UpdateLocalTransactionParams = {
@@ -34,6 +36,7 @@ export type UpdateLocalTransactionParams = {
   categoryId?: string | null;
   note?: string | null;
   occurredAt?: Date;
+  excludeFromAverage?: boolean;
 };
 
 export type DeleteLocalTransactionParams = {

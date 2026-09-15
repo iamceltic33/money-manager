@@ -17,6 +17,7 @@ export type LocalCategory = {
   updated_at: string;
   sync_status: LocalSyncStatus;
   sync_error: string | null;
+  exclude_from_average: 0 | 1;
 };
 
 export type CreateLocalCategoryParams = {
@@ -26,6 +27,7 @@ export type CreateLocalCategoryParams = {
   color?: string | null;
   icon?: CategoryIconName | null;
   sortOrder?: number;
+  excludeFromAverage?: boolean;
 };
 
 export type UpdateLocalCategoryParams = {
@@ -36,4 +38,5 @@ export type UpdateLocalCategoryParams = {
   color?: string | null;
   icon?: CategoryIconName | null;
   sortOrder?: number;
+  excludeFromAverage?: boolean;
 };

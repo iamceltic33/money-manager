@@ -41,9 +41,10 @@ export async function createLocalTransaction(params: CreateLocalTransactionParam
         created_at,
         updated_at,
         sync_status,
-        sync_error
+        sync_error,
+        exclude_from_average
       )
-      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+      values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
     `,
     id,
     params.userId,
@@ -56,7 +57,8 @@ export async function createLocalTransaction(params: CreateLocalTransactionParam
     now,
     now,
     'pending',
-    null
+    null,
+    params.excludeFromAverage ? 1 : 0
   );
 
   const transaction = await getLocalTransactionById(params.userId, id);
@@ -105,7 +107,8 @@ export async function updateLocalTransaction(params: UpdateLocalTransactionParam
         occurred_at = ?,
         updated_at = ?,
         sync_status = ?,
-        sync_error = ?
+        sync_error = ?,
+        exclude_from_average = ?
       where user_id = ? and id = ?;
     `,
     params.type ?? currentTransaction.type,
@@ -116,6 +119,9 @@ export async function updateLocalTransaction(params: UpdateLocalTransactionParam
     new Date().toISOString(),
     'pending',
     null,
+    params.excludeFromAverage === undefined
+      ? currentTransaction.exclude_from_average
+      : params.excludeFromAverage ? 1 : 0,
     params.userId,
     params.id
   );

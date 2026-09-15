@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { LogOut, Menu, Shapes, X } from 'lucide-react-native';
+import { ChartNoAxesCombined, LogOut, Menu, Shapes, X } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
@@ -49,6 +49,11 @@ export function AppHeader() {
     setIsMenuOpen(false);
     router.push('/categories');
   }
+
+  const openForecasts = () => {
+    setIsMenuOpen(false);
+    router.push('/forecasts');
+  };
 
   async function handleSignOut() {
     try {
@@ -168,6 +173,19 @@ export function AppHeader() {
                 >
                   <Shapes color={theme.text} size={20} strokeWidth={2.2} />
                   <ThemedText type="smallBold">Категории</ThemedText>
+                </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={openForecasts}
+                  style={({ pressed }) => [
+                    styles.menuItem,
+                    { backgroundColor: theme.backgroundElement },
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <ChartNoAxesCombined color={theme.text} size={20} strokeWidth={2.2} />
+                  <ThemedText type="smallBold">Прогнозы</ThemedText>
                 </Pressable>
 
                 <Pressable
