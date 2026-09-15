@@ -6,9 +6,8 @@ import { Spacing } from '@/shared/config/theme';
 import { useTheme } from '@/shared/lib/theme/use-theme';
 import { ThemedText } from '@/shared/ui/themed-text';
 
-import { type CategoryIconName } from '../consts';
 import { useCategoryStore } from '../model/category-store';
-import type { LocalCategory, LocalCategoryType } from '../model/types';
+import type { CategoryFormValues, LocalCategory, LocalCategoryType } from '../model/types';
 import { CategoryFormModal, DEFAULT_CATEGORY_COLORS } from './category-form-modal';
 import { CategoryIcon } from './category-icon';
 
@@ -30,7 +29,7 @@ export function CategoryGrid({ type }: Props) {
     [allCategories, type]
   );
 
-  const handleSubmitCategory = async (values: { name: string; icon: CategoryIconName; color: string; excludeFromAverage?: boolean }) => {
+  const handleSubmitCategory = async (values: CategoryFormValues) => {
     try {
       if (selectedCategory) {
         await updateCategory({

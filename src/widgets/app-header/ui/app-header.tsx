@@ -45,24 +45,24 @@ export function AppHeader() {
     }).start();
   }, [drawerPosition, drawerWidth, isMenuOpen]);
 
-  function openCategories() {
+  const openCategories = () => {
     setIsMenuOpen(false);
     router.push('/categories');
-  }
+  };
 
   const openForecasts = () => {
     setIsMenuOpen(false);
     router.push('/forecasts');
   };
 
-  async function handleSignOut() {
+  const handleSignOut = async () => {
     try {
       setIsMenuOpen(false);
       await signOut();
     } catch (error) {
       showErrorToast(error, 'Не удалось выйти из аккаунта');
     }
-  }
+  };
 
   return (
     <>

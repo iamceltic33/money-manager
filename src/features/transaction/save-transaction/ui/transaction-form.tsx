@@ -2,8 +2,7 @@ import { TransactionCategoryField } from "@/entities/category";
 import { formatTransactionAmountInput, isTransactionAmountInputAllowed, parseTransactionAmountInput } from "@/entities/transaction";
 import { MaxContentWidth, Spacing } from "@/shared/config";
 import { useTheme } from "@/shared/lib/theme";
-import { DateField, ThemedText } from "@/shared/ui";
-import { CheckboxField } from '@/shared/ui/checkbox-field';
+import { CheckboxField, DateField, ThemedText } from "@/shared/ui";
 import { useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 
@@ -22,7 +21,7 @@ type Props = {
     onSubmit: (values: TransactionFormValues) => void | Promise<void>;
     type: 'income' | 'expense';
     notePlaceholder?: string;
-    defaultValues?: Partial<TransactionFormValues>
+    defaultValues?: Partial<TransactionFormValues>;
 };
 
 const buttonColors: Record<Props['type'], string> = {
@@ -64,7 +63,7 @@ export function TransactionForm(props: Props) {
                 date,
                 note: note.trim() || null,
                 categoryId,
-                excludeFromAverage
+                excludeFromAverage,
             });
         } finally {
             setIsSubmitting(false);

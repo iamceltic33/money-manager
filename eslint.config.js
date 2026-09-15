@@ -8,6 +8,13 @@ module.exports = defineConfig([
   expoConfig,
   {
     rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'FunctionDeclaration FunctionDeclaration, FunctionExpression FunctionDeclaration, ArrowFunctionExpression FunctionDeclaration',
+          message: 'Внутри функций объявляйте обработчики через const и стрелочную функцию.',
+        },
+      ],
       'react-hooks/refs': 'off',
       'react-hooks/set-state-in-effect': 'off',
     },

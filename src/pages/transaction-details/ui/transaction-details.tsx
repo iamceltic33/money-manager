@@ -9,8 +9,8 @@ import { MaxContentWidth, Spacing } from '@/shared/config/theme';
 import { useTheme } from '@/shared/lib/theme/use-theme';
 import { ThemedText } from '@/shared/ui/themed-text';
 import { ThemedView } from '@/shared/ui/themed-view';
-import type { LocalTransaction } from '../model/types';
-import { Footer } from './transaction-details-footer';
+import type { LocalTransaction } from '@/entities/transaction';
+import { TransactionDetailsFooter } from './transaction-details-footer';
 import { DetailRow } from './transaction-details-row';
 type Props = {
   transaction: LocalTransaction;
@@ -89,7 +89,7 @@ export function TransactionDetails({ transaction }: Props) {
           <DetailRow label="Сумма" value={`${currencyFormatter.format(transaction.amount)} KZT`} />
           <DetailRow label="Дата операции" value={formatDate(transaction.occurred_at)} />
         </View>
-      <Footer id={transaction.id}/>
+        <TransactionDetailsFooter id={transaction.id} />
       </View>
     </ThemedView>
   );

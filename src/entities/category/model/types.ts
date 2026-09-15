@@ -40,3 +40,10 @@ export type UpdateLocalCategoryParams = {
   sortOrder?: number;
   excludeFromAverage?: boolean;
 };
+
+export type CategoryFormValues = {
+  name: string;
+  icon: CategoryIconName;
+  color: string;
+  excludeFromAverage?: boolean;
+};

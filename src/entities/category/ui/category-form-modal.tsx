@@ -17,7 +17,7 @@ import { CheckboxField } from '@/shared/ui/checkbox-field';
 import { ThemedText } from '@/shared/ui/themed-text';
 
 import { CATEGORY_ICONS, CATEGORY_ICON_OPTIONS, type CategoryIconName } from '../consts';
-import type { LocalCategory, LocalCategoryType } from '../model/types';
+import type { CategoryFormValues, LocalCategory, LocalCategoryType } from '../model/types';
 import { CategoryIcon } from './category-icon';
 
 export const DEFAULT_CATEGORY_COLORS: Record<LocalCategoryType, string> = {
@@ -36,19 +36,12 @@ const CATEGORY_COLOR_OPTIONS = [
   '#64748B',
 ];
 
-type SubmitValues = {
-  name: string;
-  icon: CategoryIconName;
-  color: string;
-  excludeFromAverage?: boolean;
-};
-
 type Props = {
   visible: boolean;
   type: LocalCategoryType;
   category?: LocalCategory | null;
   onClose: () => void;
-  onSubmit: (values: SubmitValues, id?: string) => Promise<void> | void;
+  onSubmit: (values: CategoryFormValues, id?: string) => Promise<void> | void;
   onDelete?: (category: LocalCategory) => Promise<void> | void;
 };
 

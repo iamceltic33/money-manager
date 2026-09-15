@@ -6,9 +6,8 @@ import { Spacing } from '@/shared/config/theme';
 import { useTheme } from '@/shared/lib/theme/use-theme';
 import { ThemedText } from '@/shared/ui/themed-text';
 
-import { type CategoryIconName } from '../consts';
 import { useCategoryStore } from '../model/category-store';
-import type { LocalCategory, LocalCategoryType } from '../model/types';
+import type { CategoryFormValues, LocalCategory, LocalCategoryType } from '../model/types';
 import { CategoryFormModal, DEFAULT_CATEGORY_COLORS } from './category-form-modal';
 import { CategoryIcon } from './category-icon';
 
@@ -37,22 +36,22 @@ export function TransactionCategoryField({ type, value, onChange }: Props) {
     [categories, value]
   );
 
-  function openCreateModal() {
+  const openCreateModal = () => {
     setEditableCategory(null);
     setIsModalVisible(true);
-  }
+  };
 
-  function openEditModal(category: LocalCategory) {
+  const openEditModal = (category: LocalCategory) => {
     setEditableCategory(category);
     setIsModalVisible(true);
-  }
+  };
 
-  function closeModal() {
+  const closeModal = () => {
     setIsModalVisible(false);
     setEditableCategory(null);
-  }
+  };
 
-  async function handleSubmitCategory(values: { name: string; icon: CategoryIconName; color: string, excludeFromAverage?: boolean }) {
+  const handleSubmitCategory = async (values: CategoryFormValues) => {
     try {
       if (editableCategory) {
         await updateCategory({
@@ -76,9 +75,9 @@ export function TransactionCategoryField({ type, value, onChange }: Props) {
 
       closeModal();
     } catch {}
-  }
+  };
 
-  async function handleDeleteCategory(category: LocalCategory) {
+  const handleDeleteCategory = async (category: LocalCategory) => {
     try {
       await deleteCategory(category.id);
 
@@ -88,7 +87,7 @@ export function TransactionCategoryField({ type, value, onChange }: Props) {
 
       closeModal();
     } catch {}
-  }
+  };
 
   return (
     <View style={styles.root}>

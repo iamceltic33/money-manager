@@ -77,12 +77,38 @@ export function WeeklyExpenseForecast({ balance, averageWeeklyExpense, startDate
 }
 
 const styles = StyleSheet.create({
-  container: { borderRadius: 8, padding: Spacing.four, gap: Spacing.three },
-  week: { borderTopWidth: 1, paddingTop: Spacing.three, gap: Spacing.two },
-  amounts: { flexDirection: 'row', gap: Spacing.two },
-  column: { flex: 1, gap: Spacing.one },
-  negative: { color: '#DC2626' },
-  positive: { color: '#16A34A' },
-  moreButton: { minHeight: 44, borderRadius: 8, alignItems: 'center', justifyContent: 'center', padding: Spacing.two },
-  pressed: { opacity: 0.78 },
+  container: {
+    borderRadius: 8,
+    padding: Spacing.four,
+    gap: Spacing.three,
+  },
+  week: {
+    borderTopWidth: 1,
+    paddingTop: Spacing.three,
+    gap: Spacing.two,
+  },
+  amounts: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+  },
+  column: {
+    flex: 1,
+    gap: Spacing.one,
+  },
+  negative: {
+    color: '#DC2626',
+  },
+  positive: {
+    color: '#16A34A',
+  },
+  moreButton: {
+    minHeight: 44,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.two,
+  },
+  pressed: {
+    opacity: 0.78,
+  },
 });

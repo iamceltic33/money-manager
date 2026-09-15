@@ -17,9 +17,9 @@ export function SignInForm({ onSignUpPress }: SignInFormProps) {
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
-  function handleSubmit() {
+  const handleSubmit = () => {
     signIn(email, password).catch(() => undefined);
-  }
+  };
 
   return (
     <>

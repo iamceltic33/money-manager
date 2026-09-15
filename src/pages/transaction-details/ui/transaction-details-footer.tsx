@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { Pencil, Trash2 } from 'lucide-react-native';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
-import { useTransactionsStore } from '../model/transactions-store';
+import { useTransactionsStore } from '@/entities/transaction';
 
 type Props = {
   id: string;
@@ -13,7 +13,7 @@ type Props = {
 
 const dangerColor = '#DC2626';
 
-export function Footer(props: Props) {
+export function TransactionDetailsFooter(props: Props) {
   const theme = useTheme();
   const { deleteTransaction } = useTransactionsStore();
   const router = useRouter();

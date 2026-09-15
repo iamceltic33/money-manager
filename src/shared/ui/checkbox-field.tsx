@@ -37,8 +37,24 @@ export function CheckboxField({ label, checked, onChange }: Props) {
 }
 
 const styles = StyleSheet.create({
-  row: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  checkbox: { width: 22, height: 22, borderWidth: 1, borderRadius: 4, alignItems: 'center', justifyContent: 'center' },
-  label: { flex: 1 },
-  pressed: { opacity: 0.78 },
+  row: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderWidth: 1,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  label: {
+    flex: 1,
+  },
+  pressed: {
+    opacity: 0.78,
+  },
 });

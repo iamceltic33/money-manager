@@ -28,7 +28,7 @@ export default function TabLayout() {
     const currentUserId = userId;
     let isActive = true;
 
-    async function prepareLocalData() {
+    const prepareLocalData = async () => {
       try {
         await initializeLocalUser(currentUserId);
 
@@ -45,7 +45,7 @@ export default function TabLayout() {
         console.error('Failed to prepare local data', error);
         showErrorToast(error, 'Не удалось подготовить локальные данные');
       }
-    }
+    };
 
     prepareLocalData();
 
