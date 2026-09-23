@@ -63,8 +63,11 @@ export const useTransactionsStore = create<Store>((set, get) => ({
   init: async (userId) => {
     if (get().initialized && get().userId === userId) return;
 
+    set({ userId });
+
     try {
       const { balance, history } = await getLocalSummary(userId);
+      if (get().userId !== userId) return;
 
       set({
         userId,
@@ -88,6 +91,7 @@ export const useTransactionsStore = create<Store>((set, get) => ({
     try {
       const userId = getRequiredUserId();
       const { balance, history } = await getLocalSummary(userId);
+      if (get().userId !== userId) return;
 
       set({
         balance,
@@ -109,6 +113,7 @@ export const useTransactionsStore = create<Store>((set, get) => ({
       });
 
       const summary = await getLocalSummary(userId);
+      if (get().userId !== userId) return;
 
       set({
         ...summary,
@@ -132,6 +137,7 @@ export const useTransactionsStore = create<Store>((set, get) => ({
       });
 
       const summary = await getLocalSummary(userId);
+      if (get().userId !== userId) return;
 
       set({
         ...summary,
@@ -152,6 +158,7 @@ export const useTransactionsStore = create<Store>((set, get) => ({
       });
 
       const summary = await getLocalSummary(userId);
+      if (get().userId !== userId) return;
 
       set({
         ...summary,

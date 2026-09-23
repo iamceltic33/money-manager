@@ -102,8 +102,11 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
   init: async (userId) => {
     if (get().initialized && get().userId === userId) return;
 
+    set({ userId });
+
     try {
       const categories = await getLocalCategories(userId);
+      if (get().userId !== userId) return;
 
       set({
         userId,
@@ -125,6 +128,7 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
     try {
       const userId = getRequiredUserId();
       const categories = await getLocalCategories(userId);
+      if (get().userId !== userId) return;
 
       set({ categories });
     } catch (error) {
@@ -139,7 +143,7 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
         userId,
       });
 
-      set((state) => ({
+      set((state) => state.userId !== userId ? state : ({
         categories: sortCategories([...state.categories, category]),
         initialized: true,
       }));
@@ -170,7 +174,7 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
         userId,
       });
 
-      set((state) => ({
+      set((state) => state.userId !== userId ? state : ({
         categories: sortCategories(
           state.categories.map((item) => (item.id === category.id ? category : item))
         ),
@@ -189,7 +193,7 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
 
       await deleteLocalCategory(userId, id);
 
-      set((state) => ({
+      set((state) => state.userId !== userId ? state : ({
         categories: state.categories.filter((category) => category.id !== id),
         initialized: true,
       }));

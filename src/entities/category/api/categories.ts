@@ -1,3 +1,5 @@
+import { randomUUID } from 'expo-crypto';
+
 import { getLocalDb } from '@/shared/api/local-db';
 
 import type {
@@ -7,18 +9,35 @@ import type {
   UpdateLocalCategoryParams,
 } from '../model/types';
 
-function createLocalId() {
-  if (globalThis.crypto?.randomUUID) {
-    return globalThis.crypto.randomUUID();
-  }
+const ensureCategoryNameAvailable = async (
+  userId: string,
+  name: string,
+  type: LocalCategoryType,
+  excludedId: string | null = null
+) => {
+  const database = await getLocalDb();
+  const category = await database.getFirstAsync<{ id: string }>(
+    `select id from categories
+     where user_id = ? and name = ? and type = ? and (? is null or id != ?)
+     limit 1;`,
+    userId,
+    name,
+    type,
+    excludedId,
+    excludedId
+  );
 
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
+  if (category) {
+    throw new Error('Категория с таким названием и типом уже существует');
+  }
+};
 
 export async function createLocalCategory(params: CreateLocalCategoryParams) {
   const database = await getLocalDb();
   const now = new Date().toISOString();
-  const id = createLocalId();
+  const id = randomUUID();
+
+  await ensureCategoryNameAvailable(params.userId, params.name.trim(), params.type);
 
   await database.runAsync(
     `
@@ -112,6 +131,13 @@ export async function updateLocalCategory(params: UpdateLocalCategoryParams) {
     throw new Error('Локальная категория не найдена');
   }
 
+  const name = params.name?.trim() ?? currentCategory.name;
+  const type = params.type ?? currentCategory.type;
+
+  if (name !== currentCategory.name || type !== currentCategory.type) {
+    await ensureCategoryNameAvailable(params.userId, name, type, params.id);
+  }
+
   await database.runAsync(
     `
       update categories
@@ -127,8 +153,8 @@ export async function updateLocalCategory(params: UpdateLocalCategoryParams) {
         exclude_from_average = ?
       where user_id = ? and id = ?;
     `,
-    params.type ?? currentCategory.type,
-    params.name?.trim() ?? currentCategory.name,
+    type,
+    name,
     params.color === undefined ? currentCategory.color : params.color,
     params.icon === undefined ? currentCategory.icon : params.icon,
     params.sortOrder ?? currentCategory.sort_order,

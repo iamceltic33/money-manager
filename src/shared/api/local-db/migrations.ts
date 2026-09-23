@@ -1,6 +1,10 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-const DATABASE_VERSION = 5;
+import { prepareLocalSyncSchema } from './prepare-local-sync-schema';
+import { prepareDeletionQueue } from './prepare-deletion-queue';
+import { prepareSyncTracking } from './prepare-sync-tracking';
+
+const DATABASE_VERSION = 8;
 
 type UserVersionRow = {
   user_version: number;
@@ -156,6 +160,18 @@ export async function runLocalMigrations(database: SQLiteDatabase) {
         alter table transactions add column exclude_from_average integer not null default 0
           check (exclude_from_average in (0, 1));
       `);
+    }
+
+    if (currentVersion < 6) {
+      await prepareLocalSyncSchema(database);
+    }
+
+    if (currentVersion < 7) {
+      await prepareDeletionQueue(database);
+    }
+
+    if (currentVersion < 8) {
+      await prepareSyncTracking(database);
     }
 
     await database.execAsync(`PRAGMA user_version = ${DATABASE_VERSION};`);

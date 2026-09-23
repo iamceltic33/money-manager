@@ -1,2 +1,2 @@
 export * from './client';
-export * from './initialize-local-user';
+export * from './deletions';

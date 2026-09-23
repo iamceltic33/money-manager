@@ -1,4 +1,3 @@
-import { initializeLocalUser } from '@/shared/api/local-db';
 import { useCategoryStore } from '@/entities/category';
 import { useTransactionsStore } from '@/entities/transaction';
 import { signIn as sbSignIn, signUp as sbSignUp } from '@/shared/api/supabase/authorization';
@@ -13,12 +12,12 @@ type AuthStore = {
   setIsLoading: (loading: boolean) => void;
 };
 
-export const useAuthStore = create<AuthStore>((set) => ({
+export const useAuthStore = create<AuthStore>((set, get) => ({
   session: null,
   loading: true,
   setIsLoading: (loading) => set({ loading }),
   setSession: (session) => {
-    if (!session) {
+    if (get().session?.user.id !== session?.user.id) {
       useTransactionsStore.getState().reset();
       useCategoryStore.getState().reset();
     }
@@ -48,12 +47,6 @@ export const signUp = async (email: string, password: string, displayName?: stri
 
   try {
     const data = await sbSignUp({ email, password, displayName });
-    const userId = data.session?.user.id ?? data.user?.id;
-
-    if (userId) {
-      await initializeLocalUser(userId);
-    }
-
     state.setSession(data.session);
     showSuccessToast('Аккаунт создан');
   } catch (error) {

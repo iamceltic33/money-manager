@@ -1,3 +1,5 @@
+import { randomUUID } from 'expo-crypto';
+
 import { getLocalDb } from '@/shared/api/local-db';
 
 import { normalizeTransactionAmount } from '../lib';
@@ -13,18 +15,10 @@ type BalanceRow = {
   balance: number | null;
 };
 
-function createLocalId() {
-  if (globalThis.crypto?.randomUUID) {
-    return globalThis.crypto.randomUUID();
-  }
-
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
 export async function createLocalTransaction(params: CreateLocalTransactionParams) {
   const database = await getLocalDb();
   const now = new Date().toISOString();
-  const id = createLocalId();
+  const id = randomUUID();
   const amount = normalizeTransactionAmount(params.amount);
 
   await database.runAsync(
