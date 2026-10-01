@@ -2,7 +2,7 @@ import type { SQLiteBindValue, SQLiteDatabase } from 'expo-sqlite';
 
 import type { LocalDeletion } from '@/shared/api/local-db';
 
-import type { CloudRow, SyncRemote, SyncSnapshot, SyncTable } from './types';
+import type { CloudCategory, CloudRow, SyncRemote, SyncSnapshot, SyncTable } from './types';
 
 const columns = {
   categories: ['id', 'user_id', 'type', 'name', 'color', 'icon', 'sort_order', 'created_at', 'updated_at', 'exclude_from_average'],
@@ -22,6 +22,10 @@ const entityType = (table: SyncTable) => table === 'categories' ? 'category' : '
 const errorMessage = (error: unknown) => error instanceof Error
   ? error.message
   : 'Не удалось синхронизировать запись';
+
+const toCloudRow = (table: SyncTable, row: LocalRow) => Object.fromEntries(
+  columns[table].map(key => [key, key === 'exclude_from_average' ? row[key] === 1 : row[key]])
+) as CloudRow;
 
 const pushDeletions = async (database: SQLiteDatabase, remote: SyncRemote, userId: string) => {
   const deletions = await database.getAllAsync<LocalDeletion>(
@@ -66,18 +70,20 @@ const pushRows = async (database: SQLiteDatabase, remote: SyncRemote, userId: st
       throw new Error('Локальный и облачный ID записи различаются');
     }
 
+    let category: LocalRow | null = null;
     if (table === 'transactions' && row.category_id) {
-      const category = await database.getFirstAsync<LocalRow>(
+      category = await database.getFirstAsync<LocalRow>(
         `select * from categories where user_id = ? and id = ?;`, userId, row.category_id
       );
       if (!category || category.sync_status !== 'synced') continue;
     }
 
-    const payload = Object.fromEntries(columns[table].map((key) => [
-      key, key === 'exclude_from_average' ? row[key] === 1 : row[key],
-    ])) as CloudRow;
+    const payload = toCloudRow(table, row);
 
     try {
+      if (category) {
+        await remote.ensureCategory(toCloudRow('categories', category) as CloudCategory);
+      }
       const saved = await remote.upsert(table, payload, row.remote_updated_at);
       await database.runAsync(
         `update ${table} set remote_id = ?, remote_updated_at = ? where user_id = ? and id = ?;`,

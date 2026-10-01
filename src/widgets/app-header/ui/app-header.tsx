@@ -12,6 +12,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTransactionsStore } from '@/entities/transaction';
+import { useAuthStore } from '@/features/auth';
+import { SyncButton } from '@/features/sync';
 import { signOut } from '@/shared/api/supabase/authorization';
 import { Spacing } from '@/shared/config/theme';
 import { useTheme } from '@/shared/lib/theme/use-theme';
@@ -26,6 +28,7 @@ export function AppHeader() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { balance, initialized } = useTransactionsStore();
+  const userId = useAuthStore(state => state.session?.user.id);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const drawerPosition = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const drawerWidth = Math.min(DRAWER_WIDTH, width * 0.86);
@@ -109,7 +112,7 @@ export function AppHeader() {
               </View>
             </View>
 
-            <View style={styles.headerSpacer} />
+            <SyncButton userId={userId} />
           </View>
         </SafeAreaView>
       </ThemedView>
@@ -243,10 +246,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.one,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  headerSpacer: {
-    width: 44,
-    height: 44,
   },
   balanceLabel: {
     fontSize: 12,

@@ -40,6 +40,15 @@ export const createSyncRemote = (userId: string, accessToken: string): SyncRemot
       if (error) throw new Error(error.message);
       return data as unknown as CloudRow;
     },
+    ensureCategory: async (row) => {
+      if (row.user_id !== userId) throw new Error('Неверный владелец категории');
+      // Восстанавливаем связь локальной правки, только если категория удалена в облаке.
+      // Существующую облачную категорию без локальных правок не перезаписываем.
+      const { error } = await client.from('categories')
+        .upsert(row, { onConflict: 'id', ignoreDuplicates: true })
+        .abortSignal(AbortSignal.timeout(20000));
+      if (error) throw new Error(error.message);
+    },
     remove: async (table, id) => {
       const { error } = await client.from(table).delete().eq('user_id', userId).eq('id', id)
         .abortSignal(AbortSignal.timeout(20000));

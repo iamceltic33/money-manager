@@ -80,15 +80,15 @@ test('remote deletes are applied without outbound deletion echo', async () => {
   assert.equal(await f.api.getLocalBalance(f.userId), 0);
 });
 
-test('conflicting remote edit does not overwrite either side', async () => {
+test('local edit wins over a conflicting remote edit', async () => {
   const f = await fixture(); await f.sync();
   f.remote.state.transactions.get(f.transaction.id).amount = 35;
   f.remote.state.transactions.get(f.transaction.id).updated_at = '2026-05-01T00:00:00Z';
   await f.api.updateLocalTransaction({ userId: f.userId, id: f.transaction.id, amount: 99 });
-  await assert.rejects(f.sync, /Conflict/);
-  assert.equal(f.remote.state.transactions.get(f.transaction.id).amount, 35);
+  await f.sync();
+  assert.equal(f.remote.state.transactions.get(f.transaction.id).amount, 99);
   const row = await f.api.getLocalTransactionById(f.userId, f.transaction.id);
-  assert.equal(row.amount, 99); assert.equal(row.sync_status, 'failed');
+  assert.equal(row.amount, 99); assert.equal(row.sync_status, 'synced');
 });
 
 test('failed snapshot cannot remove local data; foreign snapshot rejected', async () => {
@@ -177,4 +177,35 @@ test('edit between incoming delete marking and delete keeps row and clears marke
   await f.sync();
   const row=await f.api.getLocalTransactionById(f.userId,f.transaction.id);
   assert.equal(row.amount,88);assert.equal(row.sync_status,'pending');assert.equal(row.remote_deleted,0);
+});
+
+test('local category edit wins while an unchanged category accepts cloud changes', async () => {
+  const f = await fixture(); await f.sync();
+  f.remote.state.categories.get(f.category.id).name = 'Облачная';
+  await f.api.updateLocalCategory({userId:f.userId,id:f.category.id,name:'Локальная'});
+  await f.sync();
+  assert.equal(f.remote.state.categories.get(f.category.id).name,'Локальная');
+  f.remote.state.categories.get(f.category.id).name = 'Обновлённая';
+  await f.api.updateLocalTransaction({userId:f.userId,id:f.transaction.id,amount:32});
+  await f.sync();
+  assert.equal((await f.api.getLocalCategoryById(f.userId,f.category.id)).name,'Обновлённая');
+});
+
+test('local edit restores a remotely deleted transaction and its missing category', async () => {
+  const f = await fixture(); await f.sync();
+  await f.remote.remove('transactions',f.transaction.id);
+  await f.remote.remove('categories',f.category.id);
+  await f.api.updateLocalTransaction({userId:f.userId,id:f.transaction.id,amount:55});
+  await f.sync(); await f.sync();
+  assert.equal(f.remote.state.transactions.size,1);
+  assert.equal(f.remote.state.transactions.get(f.transaction.id).amount,55);
+  assert.equal(f.remote.state.transactions.get(f.transaction.id).category_id,f.category.id);
+  assert.equal(f.remote.state.categories.size,1);
+});
+
+test('local deletion wins over a newer cloud edit', async () => {
+  const f = await fixture(); await f.sync();
+  f.remote.state.transactions.get(f.transaction.id).amount=123;
+  await f.api.deleteLocalTransaction({userId:f.userId,id:f.transaction.id});await f.sync();
+  assert.equal(f.remote.state.transactions.size,0);
 });

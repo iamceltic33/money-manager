@@ -13,5 +13,6 @@ export type SyncRemote = {
   initialize: (seedDefaults: boolean) => Promise<void>;
   snapshot: () => Promise<SyncSnapshot>;
   upsert: (table: SyncTable, row: CloudRow, expectedUpdatedAt: string | null) => Promise<CloudRow>;
+  ensureCategory: (row: CloudCategory) => Promise<void>;
   remove: (table: SyncTable, id: string) => Promise<void>;
 };

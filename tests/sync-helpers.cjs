@@ -74,12 +74,10 @@ const createRemote = (userId) => {
       await remote.afterSnapshot?.();
       return snapshot;
     },
-    upsert: async (table, row, expected) => {
+    upsert: async (table, row) => {
       await remote.beforeUpsert?.(table, row);
       const existing = state[table].get(row.id);
       const comparable = value => JSON.stringify(Object.fromEntries(Object.entries(value).filter(([key]) => key !== 'updated_at').sort()));
-      if (existing && comparable(existing) !== comparable(row) && existing.updated_at !== expected) throw Error('Conflict');
-      if (!existing && expected) throw Error('Deleted remotely');
       if (table === 'transactions' && row.category_id && !state.categories.has(row.category_id)) throw Error('Missing category');
       const saved = existing && comparable(existing) === comparable(row) ? existing
         : { ...row, updated_at: new Date(Date.UTC(2026, 0, 1, 0, 0, ++clock)).toISOString() };
@@ -92,6 +90,9 @@ const createRemote = (userId) => {
       if (table === 'categories') for (const row of state.transactions.values()) {
         if (row.category_id === id) row.category_id = null;
       }
+    },
+    ensureCategory: async row => {
+      if (!state.categories.has(row.id)) state.categories.set(row.id, structuredClone(row));
     },
   };
   return remote;

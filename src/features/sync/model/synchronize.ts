@@ -3,6 +3,7 @@ import { supabase } from '@/shared/api/supabase';
 
 import { createSyncRemote } from '../api/remote';
 import { synchronizeDatabase } from '../api/synchronize-database';
+import { useSyncStore } from './sync-store';
 
 const runs = new Map<string, Promise<void>>();
 let previousRun: Promise<void> = Promise.resolve();
@@ -10,6 +11,8 @@ let previousRun: Promise<void> = Promise.resolve();
 export const synchronize = (userId: string): Promise<void> => {
   const active = runs.get(userId);
   if (active) return active;
+
+  useSyncStore.getState().setActive(userId, true);
 
   const run = previousRun.catch(() => {}).then(async () => {
     const { data, error } = await supabase.auth.getSession();
@@ -21,6 +24,7 @@ export const synchronize = (userId: string): Promise<void> => {
     await synchronizeDatabase(database, remote, userId);
   }).finally(() => {
     runs.delete(userId);
+    useSyncStore.getState().setActive(userId, false);
   });
 
   runs.set(userId, run);
