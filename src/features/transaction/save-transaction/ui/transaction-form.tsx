@@ -4,7 +4,7 @@ import { MaxContentWidth, Spacing } from "@/shared/config";
 import { useTheme } from "@/shared/lib/theme";
 import { CheckboxField, DateField, ThemedText } from "@/shared/ui";
 import { useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
 export type TransactionFormValues = {
     note: string | null;
@@ -70,7 +70,13 @@ export function TransactionForm(props: Props) {
         }
     };
 
-    return <View style={styles.content}>
+    return <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+    >
         <ThemedText type="subtitle" style={styles.title}>{props.title}</ThemedText>
         <ThemedText type="default" themeColor="textSecondary" style={styles.description}>{props.description}</ThemedText>
 
@@ -151,15 +157,19 @@ export function TransactionForm(props: Props) {
                 {props.buttonText}
             </ThemedText>
         </Pressable>
-    </View>
+    </ScrollView>
 }
 
 const styles = StyleSheet.create({
-    content: {
+    scroll: {
         flex: 1,
         width: '100%',
         maxWidth: MaxContentWidth,
+    },
+    content: {
+        flexGrow: 1,
         paddingHorizontal: 0,
+        paddingBottom: Spacing.four,
         gap: Spacing.three,
     },
     title: {
