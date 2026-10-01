@@ -145,9 +145,6 @@ export function AppHeader() {
               <View style={styles.drawerHeader}>
                 <View>
                   <ThemedText type="smallBold">Меню</ThemedText>
-                  <ThemedText type="small" themeColor="textSecondary">
-                    Аккаунт
-                  </ThemedText>
                 </View>
 
                 <Pressable
