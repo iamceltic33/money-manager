@@ -15,6 +15,7 @@ const load = (path, overrides = {}) => {
     require: (name) => {
       if (name in overrides) return overrides[name];
       if (name === 'expo-crypto') return { randomUUID };
+      if (name === '@/shared/model/restart-guard') return load('src/shared/model/restart-guard.ts', overrides);
       if (name.startsWith('.')) return load(resolve(dirname(file), name + '.ts'), overrides);
       return require(name);
     },

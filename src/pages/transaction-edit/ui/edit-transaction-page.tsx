@@ -1,4 +1,6 @@
-import { useTransactionsStore } from '@/entities/transaction';
+import { useCallback } from 'react';
+import { QueryStatus } from '@/shared/ui/query-status';
+import { getLocalTransactionById, useTransactionResource, useTransactionsStore } from '@/entities/transaction';
 import { TransactionForm, type TransactionFormValues } from '@/features/transaction/save-transaction';
 import { MaxContentWidth, Spacing } from '@/shared/config/theme';
 import { useTheme } from '@/shared/lib/theme/use-theme';
@@ -12,8 +14,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export function EditTransactionPage() {
   const theme = useTheme();
   const params = useLocalSearchParams<{ id: string }>();
-  const { getTransaction, updateTransaction } = useTransactionsStore();
-  const transaction = getTransaction(params.id);
+  const updateTransaction = useTransactionsStore(state => state.updateTransaction);
+  const load = useCallback((userId: string) => getLocalTransactionById(userId, params.id), [params.id]);
+  // Preserve the editing snapshot so a background sync cannot reset entered fields.
+  const { data: transaction, loading, error, retry } = useTransactionResource(load, true, false);
   const router = useRouter();
 
   const onSubmit = async (_values: TransactionFormValues) => {
@@ -31,6 +35,8 @@ export function EditTransactionPage() {
 
     }
   };
+
+  if (loading || error) return <ThemedView style={{ flex: 1 }}><QueryStatus loading={loading} error={error} retry={retry} /></ThemedView>;
 
   if (!transaction) {
     return (
@@ -68,7 +74,6 @@ export function EditTransactionPage() {
           buttonText="Сохранить изменения"
           notePlaceholder="Добавь заметку"
           title="Редактировать операцию"
-          description="Измени данные операции и сохрани обновленную версию."
           defaultValues={{
             amount: transaction.amount,
             categoryId: transaction.category_id,

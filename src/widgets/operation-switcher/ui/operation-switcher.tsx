@@ -2,23 +2,23 @@ import { router, usePathname } from 'expo-router';
 import { Minus, Plus } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/shared/ui/themed-text';
 import { MaxContentWidth, Spacing } from '@/shared/config/theme';
 import { useTheme } from '@/shared/lib/theme/use-theme';
+import { ThemedText } from '@/shared/ui/themed-text';
 
 const routes = [
-  {
-    href: '/add-income',
-    label: 'Доход',
-    value: 'income',
-    icon: Plus,
-  },
   {
     href: '/add-expense',
     label: 'Расход',
     value: 'expense',
     icon: Minus,
   },
+  {
+    href: '/add-income',
+    label: 'Доход',
+    value: 'income',
+    icon: Plus,
+  }
 ] as const;
 
 export function OperationSwitcher() {

@@ -4,7 +4,7 @@ import { prepareLocalSyncSchema } from './prepare-local-sync-schema';
 import { prepareDeletionQueue } from './prepare-deletion-queue';
 import { prepareSyncTracking } from './prepare-sync-tracking';
 
-const DATABASE_VERSION = 8;
+const DATABASE_VERSION = 9;
 
 type UserVersionRow = {
   user_version: number;
@@ -172,6 +172,13 @@ export async function runLocalMigrations(database: SQLiteDatabase) {
 
     if (currentVersion < 8) {
       await prepareSyncTracking(database);
+    }
+
+    if (currentVersion < 9) {
+      await database.execAsync(`
+        create index if not exists transactions_user_page_idx
+        on transactions(user_id, occurred_at desc, created_at desc, id desc);
+      `);
     }
 
     await database.execAsync(`PRAGMA user_version = ${DATABASE_VERSION};`);

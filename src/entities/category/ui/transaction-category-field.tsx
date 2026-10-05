@@ -104,60 +104,65 @@ export function TransactionCategoryField({ type, value, onChange }: Props) {
         contentContainerStyle={styles.categoryList}
         horizontal
         showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        {categories.map((category) => {
-          const isSelected = category.id === value;
-          const color = category.color ?? DEFAULT_CATEGORY_COLORS[type];
+        {Array.from({ length: Math.ceil((categories.length + 1) / 2) }, (_, column) => (
+          <View key={column} style={styles.categoryColumn}>
+            {categories.slice(column * 2, column * 2 + 2).map((category) => {
+              const isSelected = category.id === value;
+              const color = category.color ?? DEFAULT_CATEGORY_COLORS[type];
 
-          return (
-            <Pressable
-              accessibilityHint="Долгое нажатие откроет редактирование категории"
+              return (
+                <Pressable
+                  accessibilityHint="Долгое нажатие откроет редактирование категории"
+                  accessibilityRole="button"
+                  key={category.id}
+                  onLongPress={() => openEditModal(category)}
+                  onPress={() => onChange(category.id)}
+                  style={({ pressed }) => [
+                    styles.categoryButton,
+                    {
+                      backgroundColor: isSelected ? color : theme.backgroundElement,
+                      borderColor: isSelected ? color : theme.backgroundSelected,
+                    },
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <CategoryIcon
+                    color={isSelected ? '#FFFFFF' : color}
+                    name={category.icon}
+                    size={22}
+                  />
+                  <ThemedText
+                    numberOfLines={1}
+                    type="small"
+                    style={[styles.categoryName, isSelected && styles.selectedCategoryName]}
+                  >
+                    {category.name}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+
+            {column === Math.floor(categories.length / 2) ? <Pressable
               accessibilityRole="button"
-              key={category.id}
-              onLongPress={() => openEditModal(category)}
-              onPress={() => onChange(category.id)}
+              onPress={openCreateModal}
               style={({ pressed }) => [
-                styles.categoryButton,
+                styles.addButton,
                 {
-                  backgroundColor: isSelected ? color : theme.backgroundElement,
-                  borderColor: isSelected ? color : theme.backgroundSelected,
+                  backgroundColor: theme.backgroundElement,
+                  borderColor: theme.backgroundSelected,
                 },
                 pressed && styles.pressed,
               ]}
             >
-              <CategoryIcon
-                color={isSelected ? '#FFFFFF' : color}
-                name={category.icon}
-                size={22}
-              />
-              <ThemedText
-                numberOfLines={1}
-                type="small"
-                style={[styles.categoryName, isSelected && styles.selectedCategoryName]}
-              >
-                {category.name}
+              <Plus color="#2563EB" size={22} strokeWidth={2.4} />
+              <ThemedText type="smallBold" style={styles.addButtonText}>
+                Добавить
               </ThemedText>
-            </Pressable>
-          );
-        })}
-
-        <Pressable
-          accessibilityRole="button"
-          onPress={openCreateModal}
-          style={({ pressed }) => [
-            styles.addButton,
-            {
-              backgroundColor: theme.backgroundElement,
-              borderColor: theme.backgroundSelected,
-            },
-            pressed && styles.pressed,
-          ]}
-        >
-          <Plus color="#2563EB" size={22} strokeWidth={2.4} />
-          <ThemedText type="smallBold" style={styles.addButtonText}>
-            Добавить
-          </ThemedText>
-        </Pressable>
+            </Pressable> : null}
+          </View>
+        ))}
       </ScrollView>
 
       {categories.length === 0 ? (
@@ -192,8 +197,11 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     paddingRight: Spacing.four,
   },
+  categoryColumn: {
+    gap: Spacing.two,
+  },
   categoryButton: {
-    width: 92,
+    width: 108,
     minHeight: 76,
     borderWidth: 1,
     borderRadius: 8,

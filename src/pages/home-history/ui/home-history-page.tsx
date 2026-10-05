@@ -1,11 +1,18 @@
-import { Link } from 'expo-router';
-import { Check, ChevronDown, ChevronUp, SlidersHorizontal, X } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { usePathname, useRouter } from 'expo-router';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated from 'react-native-reanimated';
+import { useHistoryTransition } from '../model/use-history-transition';
+import { createHistoryWheel } from '../model/create-history-wheel';
+import { OperationSwitcher } from '@/widgets/operation-switcher';
+import { Totals } from '@/widgets/totals';
+import { QueryStatus } from '@/shared/ui/query-status';
+import { Check, ChevronDown, ChevronRight, ChevronUp, SlidersHorizontal, X } from 'lucide-react-native';
+import { useCallback, useEffect, useMemo, useRef, useState, type WheelEvent } from 'react';
+import { BackHandler, FlatList, Modal, Platform, Pressable, ScrollView, StyleSheet, View, type ViewToken } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CategoryIcon, useCategoryStore } from '@/entities/category';
-import { type LocalTransactionType, useTransactionsStore } from '@/entities/transaction';
+import { type LocalTransaction, type LocalTransactionType, TransactionRow, useTransactionPages, useTransactionsStore } from '@/entities/transaction';
 import { MaxContentWidth, Spacing } from '@/shared/config/theme';
 import { useTheme } from '@/shared/lib/theme/use-theme';
 import { DateField } from '@/shared/ui/date-field';
@@ -43,11 +50,34 @@ const DATE_FILTER_OPTIONS: {
   { label: 'Месяц', value: 'month' },
 ];
 
-export function TransactionsPage() {
+export function HomeHistoryPage({ mode, active }: { mode: 'home' | 'history'; active: boolean }) {
+  const expanded = mode === 'history';
+  const router = useRouter();
+  const pathname = usePathname();
+  const balance = useTransactionsStore(state => state.balance);
+  const recentTransactions = useTransactionsStore(state => state.recentTransactions);
+  useEffect(() => {
+    if (!active || pathname !== '/transactions') return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      router.dismissTo('/');
+      return true;
+    });
+    return () => subscription.remove();
+  }, [active, pathname, router]);
+
   const theme = useTheme();
-  const history = useTransactionsStore((state) => state.history);
   const categories = useCategoryStore((state) => state.categories);
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
+  const changeMode = useCallback((next: boolean) => {
+    if (next) router.navigate('/transactions');
+    else router.dismissTo('/');
+  }, [router]);
+  const transition = useHistoryTransition({ expanded, enabled: active && !isFiltersVisible, onChange: changeMode });
+  const [wheel] = useState(createHistoryWheel);
+  useEffect(() => { wheel.reset(); }, [wheel, mode, active, isFiltersVisible]);
+  const handleWheel = (event: WheelEvent<HTMLElement>) => {
+    if (active && !expanded && !isFiltersVisible && wheel.update(event.nativeEvent, Date.now())) changeMode(true);
+  };
   const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(false);
   const [filters, setFilters] = useState<TransactionFilters>(createDefaultFilters);
   const { mode: filterMode, from: dateFrom, to: dateTo } = filters.date;
@@ -69,21 +99,53 @@ export function TransactionsPage() {
     return getPresetRange(filterMode);
   }, [dateFrom, dateTo, filterMode]);
 
-  const filteredHistory = useMemo(() => {
-    if (!filterRange && filters.type === null && filters.categoryIds.length === 0) return history;
+  const pageFilters = useMemo(() => ({
+    type: filters.type,
+    categoryIds: filters.categoryIds,
+    dateFrom: filterRange?.from,
+    dateTo: filterRange?.to,
+  }), [filters.type, filters.categoryIds, filterRange]);
+  const pages = useTransactionPages(pageFilters, expanded && active);
+  const listRef = useRef<FlatList<LocalTransaction>>(null);
+  const categoryMap = useMemo(() => new Map(categories.map(category => [category.id, category])), [categories]);
+  const offsets = useRef({ home: 0, history: 0 });
+  const restorePending = useRef(true);
+  const anchors = useRef<{ home?: string; history?: string }>({});
+  const listState = useRef({ mode, active, loading: pages.loading });
+  useEffect(() => {
+    listState.current = { mode, active, loading: pages.loading };
+  }, [mode, active, pages.loading]);
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken<LocalTransaction>[] }) => {
+    const current = listState.current;
+    if (current.active && (current.mode === 'home' || !current.loading) && !restorePending.current && viewableItems[0]) {
+      anchors.current[current.mode] = viewableItems[0].item.id;
+    }
+  }, []);
+  useEffect(() => {
+    restorePending.current = true;
+  }, [pages.queryKey]);
+  useEffect(() => {
+    offsets.current.history = 0;
+    anchors.current.history = undefined;
+    restorePending.current = true;
+  }, [pageFilters]);
+  useEffect(() => {
+    if (active) {
+      restorePending.current = true;
+    }
+  }, [mode, active]);
+  const restorePosition = useCallback(() => {
+    if (!active || !restorePending.current || (expanded && pages.loading)) return;
+    const data = expanded ? pages.items : recentTransactions;
+    const index = data.findIndex(item => item.id === anchors.current[mode]);
+    if (index >= 0) listRef.current?.scrollToIndex({ index, animated: false, viewPosition: 0 });
+    else listRef.current?.scrollToOffset({ offset: offsets.current[mode], animated: false });
+    restorePending.current = false;
+  }, [active, expanded, pages.loading, pages.items, recentTransactions, mode]);
+  useEffect(() => {
+    restorePosition();
+  }, [restorePosition]);
 
-    return history.filter((transaction) => {
-      if (filters.type !== null && transaction.type !== filters.type) return false;
-      if (filters.categoryIds.length > 0
-        && (transaction.category_id === null
-          || !filters.categoryIds.includes(transaction.category_id))) return false;
-      if (!filterRange) return true;
-
-      const occurredAt = new Date(transaction.occurred_at);
-
-      return occurredAt >= filterRange.from && occurredAt <= filterRange.to;
-    });
-  }, [filterRange, filters.type, filters.categoryIds, history]);
 
   const typeLabel = filters.type === null
     ? 'Все операции'
@@ -161,13 +223,25 @@ export function TransactionsPage() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        style={styles.scroll}
-      >
-        <View style={styles.content}>
-          <View style={styles.pageHeader}>
+      <View style={styles.historyContent}>
+        <Animated.View
+          pointerEvents={expanded ? 'none' : 'auto'}
+          accessibilityElementsHidden={expanded}
+          importantForAccessibility={expanded ? 'no-hide-descendants' : 'auto'}
+          style={[styles.summaryClip, transition.summaryStyle]}
+        >
+          <View style={styles.homeSummary} onLayout={event => { transition.measureSummary(event.nativeEvent.layout.height); }}>
+            <OperationSwitcher />
+            <Totals balance={balance} />
+          </View>
+        </Animated.View>
+        <View style={styles.headers}>
+          <Animated.View
+            pointerEvents={expanded ? 'auto' : 'none'}
+            accessibilityElementsHidden={!expanded}
+            importantForAccessibility={expanded ? 'auto' : 'no-hide-descendants'}
+            style={[styles.pageHeader, styles.headerOverlay, transition.historyHeaderStyle]}
+          >
             <View style={styles.titleBlock}>
               <ThemedText type="subtitle" style={styles.title}>
                 Операции
@@ -223,75 +297,87 @@ export function TransactionsPage() {
                 </Pressable>
               ) : null}
             </View>
-          </View>
-
-          <View
-            style={[
-              styles.list,
-              {
-                backgroundColor: theme.backgroundElement,
-                borderColor: theme.backgroundSelected,
-              },
-            ]}
+          </Animated.View>
+          <Animated.View
+            pointerEvents={expanded ? 'none' : 'auto'}
+            accessibilityElementsHidden={expanded}
+            importantForAccessibility={expanded ? 'no-hide-descendants' : 'auto'}
+            style={[styles.pageHeader, styles.headerOverlay, transition.homeHeaderStyle]}
           >
-            {filteredHistory.length === 0 ? (
-              <View style={styles.emptyState}>
-                <ThemedText type="smallBold">
-                  {history.length === 0 ? 'Операций пока нет' : 'Нет операций по выбранным фильтрам'}
-                </ThemedText>
-              </View>
-            ) : null}
-
-            {filteredHistory.map((transaction, index) => {
-              const isIncome = transaction.type === 'income';
-              const category = categories.find((item) => item.id === transaction.category_id);
-              const accentColor = isIncome ? styles.incomeAmount.color : styles.expenseAmount.color;
-
-              return (
-                <View key={transaction.id}>
-                  <Link href={`/transactions/${transaction.id}`} asChild>
-                    <Pressable style={({ pressed }) => pressed && styles.pressed}>
-                      <View style={styles.row}>
-                        <View style={[styles.iconBadge, { backgroundColor: theme.background }]}>
-                          <CategoryIcon color={category?.color ?? accentColor} name={category?.icon} />
-                        </View>
-
-                        <View style={styles.rowContent}>
-                          <ThemedText numberOfLines={1} type="smallBold">
-                            {category?.name ?? (isIncome ? 'Доход' : 'Расход')}
-                          </ThemedText>
-                          <ThemedText type="small" themeColor="textSecondary">
-                            {new Date(transaction.occurred_at).toLocaleDateString()}
-                          </ThemedText>
-                        </View>
-
-                        <ThemedText
-                          numberOfLines={1}
-                          type="smallBold"
-                          style={isIncome ? styles.incomeAmount : styles.expenseAmount}
-                        >
-                          {isIncome ? '+' : '-'} {transaction.amount}
-                        </ThemedText>
-                      </View>
-                    </Pressable>
-                  </Link>
-
-                  {index !== filteredHistory.length - 1 ? (
-                    <View style={[styles.divider, { backgroundColor: theme.backgroundSelected }]} />
-                  ) : null}
-                </View>
-              );
-            })}
-          </View>
+            <View style={styles.titleBlock}>
+              <ThemedText type="smallBold">Последние операции</ThemedText>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Все операции"
+                accessibilityHint="Открыть историю операций с фильтрами"
+                onPress={() => changeMode(true)}
+                style={({ pressed }) => [styles.openHistoryButton, pressed && styles.pressed]}
+              >
+                <ThemedText type="smallBold" style={styles.openHistoryText}>Все операции</ThemedText>
+                <ChevronRight color="#2563EB" size={16} />
+              </Pressable>
+            </View>
+            <Pressable
+              onPress={() => router.push('/reports')}
+              accessibilityRole="button"
+              accessibilityLabel="Открыть отчёты"
+              style={[styles.reportsButton, { backgroundColor: theme.backgroundElement }]}
+            >
+              <ThemedText type="smallBold">Отчёты</ThemedText>
+            </Pressable>
+          </Animated.View>
         </View>
-      </ScrollView>
+        <GestureDetector gesture={transition.pan}>
+          <View style={styles.listContainer} collapsable={false} {...(Platform.OS === 'web' ? { onWheel: handleWheel } : {})}>
+            <GestureDetector gesture={transition.native}>
+              <FlatList
+                ref={listRef}
+                data={expanded ? pages.items : recentTransactions}
+                keyExtractor={item => item.id}
+                extraData={categoryMap}
+                renderItem={({ item }) => <TransactionRow transaction={item} category={categoryMap.get(item.category_id ?? '')} />}
+                ItemSeparatorComponent={() => <View style={[styles.divider, { backgroundColor: theme.backgroundSelected }]} />}
+                style={[styles.historyList, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}
+                contentContainerStyle={styles.historyListContent}
+                onScroll={event => {
+                  transition.updateScroll(event.nativeEvent.contentOffset.y);
+                  if (active && (!expanded || !pages.loading) && !restorePending.current) offsets.current[mode] = event.nativeEvent.contentOffset.y;
+                }}
+                scrollEventThrottle={16}
+                onViewableItemsChanged={onViewableItemsChanged}
+                onScrollToIndexFailed={info => {
+                  listRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: false });
+                }}
+                onContentSizeChange={restorePosition}
+                scrollEnabled={expanded}
+                bounces={false}
+                overScrollMode="never"
+                showsVerticalScrollIndicator={false}
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                windowSize={7}
+                onEndReached={() => { if (expanded && active) void pages.loadMore(); }}
+                onEndReachedThreshold={0.5}
+                ListEmptyComponent={(!expanded || (!pages.loading && !pages.error)) ? (
+                  <View style={styles.emptyState}>
+                    <ThemedText type="smallBold">{expanded && hasActiveFilters ? 'Нет операций по выбранным фильтрам' : 'Операций пока нет'}</ThemedText>
+                  </View>
+                ) : null}
+                ListFooterComponent={expanded && (pages.loading || pages.error) ? (
+                  <QueryStatus loading={pages.loading} error={pages.error} retry={() => { void pages.loadMore(true); }} />
+                ) : null}
+              />
+            </GestureDetector>
+          </View>
+        </GestureDetector>
+      </View>
 
       <Modal
         animationType="fade"
         hardwareAccelerated
         onRequestClose={() => setIsFiltersVisible(false)}
         transparent
-        visible={isFiltersVisible}
+        visible={isFiltersVisible && expanded && active}
       >
         <View style={styles.modalRoot}>
           <Pressable
@@ -582,20 +668,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scroll: {
+  historyContent: {
     flex: 1,
     width: '100%',
-  },
-  scrollContent: {
-    alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingBottom: Spacing.five,
-  },
-  content: {
-    width: '100%',
     maxWidth: MaxContentWidth,
-    gap: Spacing.three,
+    alignSelf: 'center',
+    paddingHorizontal: Spacing.four,
+    paddingBottom: Spacing.three,
   },
+  summaryClip: { overflow: 'hidden' },
+  // Measure the natural content height independently of the collapsing wrapper.
+  homeSummary: { position: 'absolute', top: 0, left: 0, right: 0, gap: Spacing.three },
+  headers: { minHeight: 72, marginBottom: Spacing.three },
+  headerOverlay: { ...StyleSheet.absoluteFill },
+  listContainer: { flex: 1 },
+  openHistoryButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: Spacing.one, alignSelf: 'flex-start' },
+  openHistoryText: { color: '#2563EB' },
+  reportsButton: { minHeight: 56, paddingHorizontal: Spacing.three, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  historyList: { flex: 1, borderWidth: 1, borderRadius: 8 },
+  historyListContent: { padding: Spacing.four },
   pageHeader: {
     minHeight: 52,
     flexDirection: 'row',
@@ -642,28 +733,8 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#2563EB',
   },
-  list: {
-    width: '100%',
-    borderRadius: 8,
-    borderWidth: 1,
-    padding: Spacing.four,
-    gap: Spacing.three,
-  },
   emptyState: {
     minHeight: 120,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  row: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-  },
-  iconBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -671,14 +742,6 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     gap: Spacing.half,
-  },
-  incomeAmount: {
-    color: '#16A34A',
-    flexShrink: 0,
-  },
-  expenseAmount: {
-    color: '#DC2626',
-    flexShrink: 0,
   },
   divider: {
     height: 1,

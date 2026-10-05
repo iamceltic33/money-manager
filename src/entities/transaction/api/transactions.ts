@@ -8,6 +8,8 @@ import type {
   CreateLocalTransactionParams,
   DeleteLocalTransactionParams,
   LocalTransaction,
+  GetLocalTransactionPageParams,
+  LocalTransactionPage,
   UpdateLocalTransactionParams,
 } from '../model/types';
 
@@ -155,10 +157,69 @@ export async function getLocalTransactions(userId: string) {
       select *
       from transactions
       where user_id = ?
-      order by occurred_at desc, created_at desc;
+      order by occurred_at desc, created_at desc, id desc;
     `,
     userId
   );
+}
+
+export async function getLocalTransactionsPage({
+  userId,
+  limit = 40,
+  cursor,
+  filters = {},
+}: GetLocalTransactionPageParams): Promise<LocalTransactionPage> {
+  if (!Number.isInteger(limit) || limit < 1 || limit > 200) {
+    throw new Error('Размер страницы должен быть целым числом от 1 до 200');
+  }
+  if (!userId) throw new Error('Пользователь не выбран');
+
+  const conditions = ['user_id = ?'];
+  const bindings: (string | number)[] = [userId];
+
+  if (filters.type != null) {
+    conditions.push('type = ?');
+    bindings.push(filters.type);
+  }
+  if (filters.categoryIds?.length) {
+    const ids = [...new Set(filters.categoryIds)];
+    conditions.push(`category_id in (${ids.map(() => '?').join(', ')})`);
+    bindings.push(...ids);
+  }
+  if (filters.dateFrom) {
+    conditions.push('occurred_at >= ?');
+    bindings.push(filters.dateFrom.toISOString());
+  }
+  if (filters.dateTo) {
+    conditions.push('occurred_at <= ?');
+    bindings.push(filters.dateTo.toISOString());
+  }
+  if (cursor) {
+    conditions.push('(occurred_at, created_at, id) < (?, ?, ?)');
+    bindings.push(cursor.occurredAt, cursor.createdAt, cursor.id);
+  }
+
+  const database = await getLocalDb();
+  // One extra row determines the end without a separate count query.
+  const rows = await database.getAllAsync<LocalTransaction>(`
+    select * from transactions
+    where ${conditions.join(' and ')}
+    order by occurred_at desc, created_at desc, id desc
+    limit ?;
+  `, ...bindings, limit + 1);
+  const hasMore = rows.length > limit;
+  const items = rows.slice(0, limit);
+  const last = items[items.length - 1];
+
+  return {
+    items,
+    hasMore,
+    nextCursor: hasMore && last ? {
+      occurredAt: last.occurred_at,
+      createdAt: last.created_at,
+      id: last.id,
+    } : null,
+  };
 }
 
 export async function getLocalBalance(userId: string) {

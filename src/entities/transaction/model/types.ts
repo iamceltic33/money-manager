@@ -43,3 +43,29 @@ export type DeleteLocalTransactionParams = {
   userId: string;
   id: string;
 };
+
+export type LocalTransactionCursor = {
+  occurredAt: string;
+  createdAt: string;
+  id: string;
+};
+
+export type LocalTransactionPageFilters = {
+  type?: LocalTransactionType | null;
+  categoryIds?: string[];
+  dateFrom?: Date;
+  dateTo?: Date;
+};
+
+export type GetLocalTransactionPageParams = {
+  userId: string;
+  limit?: number;
+  cursor?: LocalTransactionCursor | null;
+  filters?: LocalTransactionPageFilters;
+};
+
+export type LocalTransactionPage = {
+  items: LocalTransaction[];
+  nextCursor: LocalTransactionCursor | null;
+  hasMore: boolean;
+};

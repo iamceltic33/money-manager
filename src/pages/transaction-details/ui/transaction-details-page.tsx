@@ -1,6 +1,8 @@
+import { useCallback } from 'react';
+import { QueryStatus } from '@/shared/ui/query-status';
 import { ThemedText } from "@/shared/ui/themed-text";
 import { ThemedView } from "@/shared/ui/themed-view";
-import { useTransactionsStore } from "@/entities/transaction";
+import { getLocalTransactionById, useTransactionResource } from "@/entities/transaction";
 import { MaxContentWidth, Spacing } from "@/shared/config/theme";
 import { useTheme } from "@/shared/lib/theme/use-theme";
 import { useLocalSearchParams } from "expo-router";
@@ -13,8 +15,9 @@ import { TransactionDetails } from './transaction-details';
 export function TransactionDetailsPage() {
     const theme = useTheme();
     const params = useLocalSearchParams<{id: string}>();
-    const { getTransaction } = useTransactionsStore();
-    const transaction = getTransaction(params.id);
+    const load = useCallback((userId: string) => getLocalTransactionById(userId, params.id), [params.id]);
+    const { data: transaction, loading, error, retry } = useTransactionResource(load);
+    if (loading || error) return <ThemedView style={{ flex: 1 }}><QueryStatus loading={loading} error={error} retry={retry} /></ThemedView>;
     if (!transaction) {
         return (
             <ThemedView style={styles.container}>

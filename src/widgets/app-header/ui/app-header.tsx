@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router';
-import { ChartNoAxesCombined, LogOut, Menu, Shapes, X } from 'lucide-react-native';
+import { usePathname, useRouter } from 'expo-router';
+import { ChartBar, ChartNoAxesCombined, ChevronLeft, LogOut, Menu, Shapes, X } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
@@ -26,6 +26,8 @@ const DRAWER_WIDTH = 300;
 export function AppHeader() {
   const theme = useTheme();
   const router = useRouter();
+  const pathname = usePathname();
+  const showBackButton = pathname !== '/';
   const { width } = useWindowDimensions();
   const { balance, initialized } = useTransactionsStore();
   const userId = useAuthStore(state => state.session?.user.id);
@@ -53,6 +55,19 @@ export function AppHeader() {
     router.push('/categories');
   };
 
+  const goBack = () => {
+    if ((pathname === '/categories' || pathname === '/forecasts' || pathname === '/reports') && router.canGoBack()) {
+      router.back();
+      return;
+    }
+    if (pathname.startsWith('/transactions/')) {
+      if (router.canGoBack()) router.back();
+      else router.replace('/transactions');
+      return;
+    }
+    router.dismissTo('/');
+  };
+
   const openForecasts = () => {
     setIsMenuOpen(false);
     router.push('/forecasts');
@@ -73,16 +88,20 @@ export function AppHeader() {
         <SafeAreaView edges={['top']} style={styles.safeArea}>
           <View style={styles.headerContent}>
             <Pressable
-              accessibilityLabel="Открыть меню"
+              accessibilityLabel={showBackButton ? 'Назад' : 'Открыть меню'}
               accessibilityRole="button"
-              onPress={() => setIsMenuOpen(true)}
+              onPress={showBackButton ? goBack : () => setIsMenuOpen(true)}
               style={({ pressed }) => [
                 styles.iconButton,
                 { backgroundColor: theme.backgroundElement },
                 pressed && styles.pressed,
               ]}
             >
-              <Menu color={theme.text} size={22} strokeWidth={2.2} />
+              {showBackButton ? (
+                <ChevronLeft color={theme.text} size={22} strokeWidth={2.4} />
+              ) : (
+                <Menu color={theme.text} size={22} strokeWidth={2.2} />
+              )}
             </Pressable>
 
             <View
@@ -173,6 +192,15 @@ export function AppHeader() {
                 >
                   <Shapes color={theme.text} size={20} strokeWidth={2.2} />
                   <ThemedText type="smallBold">Категории</ThemedText>
+                </Pressable>
+
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => { setIsMenuOpen(false); router.push('/reports'); }}
+                  style={({ pressed }) => [styles.menuItem, { backgroundColor: theme.backgroundElement }, pressed && styles.pressed]}
+                >
+                  <ChartBar color={theme.text} size={20} strokeWidth={2.2} />
+                  <ThemedText type="smallBold">Отчёты</ThemedText>
                 </Pressable>
 
                 <Pressable

@@ -1,3 +1,4 @@
+import { beginAppTask } from '@/shared/model/restart-guard';
 import { getLocalDb } from '@/shared/api/local-db';
 import { supabase } from '@/shared/api/supabase';
 
@@ -12,6 +13,7 @@ export const synchronize = (userId: string): Promise<void> => {
   const active = runs.get(userId);
   if (active) return active;
 
+  const finish = beginAppTask();
   useSyncStore.getState().setActive(userId, true);
 
   const run = previousRun.catch(() => {}).then(async () => {
@@ -23,6 +25,7 @@ export const synchronize = (userId: string): Promise<void> => {
     const remote = createSyncRemote(userId, data.session.access_token);
     await synchronizeDatabase(database, remote, userId);
   }).finally(() => {
+    finish();
     runs.delete(userId);
     useSyncStore.getState().setActive(userId, false);
   });

@@ -1,1 +1,1 @@
-export { TransactionsPage } from './ui/transactions-page';
+export { HomeHistoryPage as TransactionsPage } from '@/pages/home-history';

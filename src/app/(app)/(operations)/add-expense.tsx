@@ -1,18 +1,14 @@
 import { useTransactionsStore } from "@/entities/transaction";
 import { TransactionForm, type TransactionFormValues } from "@/features/transaction/save-transaction";
 import { MaxContentWidth, Spacing } from "@/shared/config/theme";
-import { useTheme } from "@/shared/lib/theme/use-theme";
 import { showSuccessToast } from "@/shared/model/toast-store";
-import { ThemedText } from "@/shared/ui/themed-text";
 import { ThemedView } from "@/shared/ui/themed-view";
 import { useRouter } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function AddExpense() {
-    const theme = useTheme();
-    const { balance, createTransaction } = useTransactionsStore();
+    const { createTransaction } = useTransactionsStore();
     const router = useRouter();
 
     const addExpense = async ({ note, amount, categoryId, date, excludeFromAverage }: TransactionFormValues) => {
@@ -28,40 +24,14 @@ export default function AddExpense() {
         } catch {}
     }
 
-    const goBack = () => {
-        router.replace('/');
-    }
-
     return <ThemedView style={styles.container}>
         <SafeAreaView edges={['bottom']} style={styles.content}>
-            <View style={styles.topBar}>
-                <Pressable
-                    accessibilityLabel="Назад"
-                    accessibilityRole="button"
-                    onPress={goBack}
-                    style={({ pressed }) => [
-                        styles.backButton,
-                        { backgroundColor: theme.backgroundElement },
-                        pressed && styles.pressed,
-                    ]}
-                >
-                    <ChevronLeft color={theme.text} size={22} strokeWidth={2.4} />
-                </Pressable>
-
-                <View style={styles.balanceBlock}>
-                    <ThemedText type="small" themeColor="textSecondary">Баланс</ThemedText>
-                    <ThemedText type="smallBold">
-                        {balance} KZT
-                    </ThemedText>
-                </View>
-            </View>
             <TransactionForm
                 type="expense"
                 onSubmit={addExpense}
                 buttonText="Добавить расход"
                 notePlaceholder="Например, продукты или такси"
                 title="Добавить расход"
-                description="Введи сумму траты, которую нужно вычесть из общего баланса."
             />
         </SafeAreaView>
     </ThemedView>
@@ -79,25 +49,5 @@ const styles = StyleSheet.create({
         paddingHorizontal: Spacing.four,
         paddingTop: Spacing.five,
         gap: Spacing.three,
-    },
-    topBar: {
-        minHeight: 44,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: Spacing.three,
-    },
-    backButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    balanceBlock: {
-        alignItems: 'flex-end',
-    },
-    pressed: {
-        opacity: 0.78,
     },
 });

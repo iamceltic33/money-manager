@@ -1,14 +1,15 @@
 import { MaxContentWidth, Spacing } from '@/shared/config/theme';
 import { OperationSwitcher } from '@/widgets/operation-switcher';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 export default function OperationsLayout() {
+  const pathname = usePathname();
   return (
     <>
-      <View style={styles.switcherWrapper}>
+      {pathname !== '/' ? <View style={styles.switcherWrapper}>
         <OperationSwitcher />
-      </View>
+      </View> : null}
       <Stack screenOptions={{ headerShown: false }} />
     </>
   );

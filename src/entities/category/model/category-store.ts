@@ -1,3 +1,4 @@
+import { beginAppTask } from '@/shared/model/restart-guard';
 import { showErrorToast } from '@/shared/model/toast-store';
 import { create } from 'zustand';
 
@@ -136,6 +137,7 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
     }
   },
   createCategory: async (params) => {
+    const finish = beginAppTask();
     try {
       const userId = getRequiredUserId();
       const category = await createLocalCategory({
@@ -152,9 +154,12 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
     } catch (error) {
       showErrorToast(error, 'Не удалось добавить категорию');
       throw error;
+    } finally {
+      finish();
     }
   },
   updateCategory: async (params) => {
+    const finish = beginAppTask();
     try {
       const currentCategory = get().categories.find((category) => category.id === params.id);
 
@@ -185,9 +190,12 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
     } catch (error) {
       showErrorToast(error, 'Не удалось обновить категорию');
       throw error;
+    } finally {
+      finish();
     }
   },
   deleteCategory: async (id) => {
+    const finish = beginAppTask();
     try {
       const userId = getRequiredUserId();
 
@@ -200,6 +208,8 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
     } catch (error) {
       showErrorToast(error, 'Не удалось удалить категорию');
       throw error;
+    } finally {
+      finish();
     }
   },
   getCategoryById: (id) => {

@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { KeyboardAwareScrollView, KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Spacing } from '@/shared/config/theme';
@@ -116,166 +117,172 @@ export function CategoryFormModal({ visible, type, category, onClose, onSubmit, 
 
   return (
     <Modal animationType="fade" hardwareAccelerated onRequestClose={onClose} transparent visible={visible}>
-      <View style={styles.modalRoot}>
-        <Pressable accessibilityLabel="Закрыть окно" onPress={onClose} style={styles.backdrop} />
+      <KeyboardProvider preload={false}>
+        <View style={styles.modalRoot}>
+          <Pressable accessibilityLabel="Закрыть окно" onPress={onClose} style={styles.backdrop} />
 
-        <SafeAreaView edges={['bottom']} style={[styles.modalSafeArea, { backgroundColor: theme.background }]}>
-          <View
-            style={[
-              styles.modalCard,
-              {
-                backgroundColor: theme.background,
-                borderColor: theme.backgroundSelected,
-              },
-            ]}
-          >
-            <View style={styles.modalHeader}>
-              <View>
-                <ThemedText type="smallBold">{title}</ThemedText>
-                <ThemedText type="small" themeColor="textSecondary">
-                  {type === 'income' ? 'Доход' : 'Расход'}
-                </ThemedText>
-              </View>
+          <SafeAreaView edges={['bottom']} style={[styles.modalSafeArea, { backgroundColor: theme.background }]}>
+            <KeyboardAwareScrollView
+              bottomOffset={Spacing.three}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              style={styles.modalScroll}
+              contentContainerStyle={[
+                styles.modalCard,
+                {
+                  backgroundColor: theme.background,
+                  borderColor: theme.backgroundSelected,
+                },
+              ]}
+            >
+              <View style={styles.modalHeader}>
+                <View>
+                  <ThemedText type="smallBold">{title}</ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {type === 'income' ? 'Доход' : 'Расход'}
+                  </ThemedText>
+                </View>
 
-              <Pressable
-                accessibilityLabel="Закрыть окно"
-                accessibilityRole="button"
-                onPress={onClose}
-                style={({ pressed }) => [
-                  styles.closeButton,
-                  { backgroundColor: theme.backgroundElement },
-                  pressed && styles.pressed,
-                ]}
-              >
-                <X color={theme.text} size={20} strokeWidth={2.2} />
-              </Pressable>
-            </View>
-
-            <View style={styles.field}>
-              <ThemedText type="smallBold">Название</ThemedText>
-              <TextInput
-                autoCapitalize="sentences"
-                onChangeText={setName}
-                placeholder="Например, продукты"
-                placeholderTextColor={theme.textSecondary}
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: theme.backgroundElement,
-                    borderColor: theme.backgroundSelected,
-                    color: theme.text,
-                  },
-                ]}
-                value={name}
-              />
-            </View>
-
-            <View style={styles.field}>
-              <ThemedText type="smallBold">Цвет</ThemedText>
-              <View style={styles.colorGrid}>
-                {colorOptions.map((color) => {
-                  const isSelected = color === selectedColor;
-
-                  return (
-                    <Pressable
-                      accessibilityRole="button"
-                      key={color}
-                      onPress={() => setSelectedColor(color)}
-                      style={({ pressed }) => [
-                        styles.colorButton,
-                        {
-                          backgroundColor: color,
-                          borderColor: isSelected ? theme.text : theme.backgroundSelected,
-                        },
-                        pressed && styles.pressed,
-                      ]}
-                    />
-                  );
-                })}
-              </View>
-            </View>
-
-            <View style={styles.field}>
-              <ThemedText type="smallBold">Иконка</ThemedText>
-              <ScrollView contentContainerStyle={styles.iconGrid} style={styles.iconScroll}>
-                {CATEGORY_ICON_OPTIONS.map((iconName) => {
-                  const isSelected = iconName === selectedIcon;
-
-                  return (
-                    <Pressable
-                      accessibilityRole="button"
-                      key={iconName}
-                      onPress={() => setSelectedIcon(iconName)}
-                      style={({ pressed }) => [
-                        styles.iconButton,
-                        {
-                          backgroundColor: isSelected ? selectedColor : theme.backgroundElement,
-                          borderColor: isSelected ? selectedColor : theme.backgroundSelected,
-                        },
-                        pressed && styles.pressed,
-                      ]}
-                    >
-                      <CategoryIcon
-                        color={isSelected ? '#FFFFFF' : theme.textSecondary}
-                        name={iconName}
-                        size={22}
-                      />
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            </View>
-
-            {isEditMode ? (
-              <CheckboxField
-                label="Не учитывать в прогнозе"
-                checked={excludeFromAverage}
-                onChange={setExcludeFromAverage}
-              />
-            ) : null}
-
-            <View style={styles.actions}>
-              <Pressable
-                accessibilityRole="button"
-                disabled={isSubmitDisabled}
-                onPress={handleSubmit}
-                style={({ pressed }) => [
-                  styles.submitButton,
-                  { backgroundColor: isSubmitDisabled ? theme.backgroundSelected : selectedColor },
-                  pressed && !isSubmitDisabled && styles.pressed,
-                ]}
-              >
-                <ThemedText
-                  style={[
-                    styles.submitButtonText,
-                    isSubmitDisabled && { color: theme.textSecondary },
-                  ]}
-                >
-                  {submitText}
-                </ThemedText>
-              </Pressable>
-
-              {isEditMode && onDelete ? (
                 <Pressable
+                  accessibilityLabel="Закрыть окно"
                   accessibilityRole="button"
-                  onPress={confirmDelete}
+                  onPress={onClose}
                   style={({ pressed }) => [
-                    styles.deleteButton,
-                    {
-                      backgroundColor: theme.backgroundElement,
-                      borderColor: '#DC2626',
-                    },
+                    styles.closeButton,
+                    { backgroundColor: theme.backgroundElement },
                     pressed && styles.pressed,
                   ]}
                 >
-                  <Trash2 color="#DC2626" size={18} strokeWidth={2.3} />
-                  <ThemedText style={styles.deleteButtonText}>Удалить</ThemedText>
+                  <X color={theme.text} size={20} strokeWidth={2.2} />
                 </Pressable>
+              </View>
+
+              <View style={styles.field}>
+                <ThemedText type="smallBold">Название</ThemedText>
+                <TextInput
+                  autoCapitalize="sentences"
+                  onChangeText={setName}
+                  placeholder="Например, продукты"
+                  placeholderTextColor={theme.textSecondary}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: theme.backgroundElement,
+                      borderColor: theme.backgroundSelected,
+                      color: theme.text,
+                    },
+                  ]}
+                  value={name}
+                />
+              </View>
+
+              <View style={styles.field}>
+                <ThemedText type="smallBold">Цвет</ThemedText>
+                <View style={styles.colorGrid}>
+                  {colorOptions.map((color) => {
+                    const isSelected = color === selectedColor;
+
+                    return (
+                      <Pressable
+                        accessibilityRole="button"
+                        key={color}
+                        onPress={() => setSelectedColor(color)}
+                        style={({ pressed }) => [
+                          styles.colorButton,
+                          {
+                            backgroundColor: color,
+                            borderColor: isSelected ? theme.text : theme.backgroundSelected,
+                          },
+                          pressed && styles.pressed,
+                        ]}
+                      />
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View style={styles.field}>
+                <ThemedText type="smallBold">Иконка</ThemedText>
+                <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled contentContainerStyle={styles.iconGrid} style={styles.iconScroll}>
+                  {CATEGORY_ICON_OPTIONS.map((iconName) => {
+                    const isSelected = iconName === selectedIcon;
+
+                    return (
+                      <Pressable
+                        accessibilityRole="button"
+                        key={iconName}
+                        onPress={() => setSelectedIcon(iconName)}
+                        style={({ pressed }) => [
+                          styles.iconButton,
+                          {
+                            backgroundColor: isSelected ? selectedColor : theme.backgroundElement,
+                            borderColor: isSelected ? selectedColor : theme.backgroundSelected,
+                          },
+                          pressed && styles.pressed,
+                        ]}
+                      >
+                        <CategoryIcon
+                          color={isSelected ? '#FFFFFF' : theme.textSecondary}
+                          name={iconName}
+                          size={22}
+                        />
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              {isEditMode ? (
+                <CheckboxField
+                  label="Не учитывать в прогнозе"
+                  checked={excludeFromAverage}
+                  onChange={setExcludeFromAverage}
+                />
               ) : null}
-            </View>
-          </View>
-        </SafeAreaView>
-      </View>
+
+              <View style={styles.actions}>
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={isSubmitDisabled}
+                  onPress={handleSubmit}
+                  style={({ pressed }) => [
+                    styles.submitButton,
+                    { backgroundColor: isSubmitDisabled ? theme.backgroundSelected : selectedColor },
+                    pressed && !isSubmitDisabled && styles.pressed,
+                  ]}
+                >
+                  <ThemedText
+                    style={[
+                      styles.submitButtonText,
+                      isSubmitDisabled && { color: theme.textSecondary },
+                    ]}
+                  >
+                    {submitText}
+                  </ThemedText>
+                </Pressable>
+
+                {isEditMode && onDelete ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={confirmDelete}
+                    style={({ pressed }) => [
+                      styles.deleteButton,
+                      {
+                        backgroundColor: theme.backgroundElement,
+                        borderColor: '#DC2626',
+                      },
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <Trash2 color="#DC2626" size={18} strokeWidth={2.3} />
+                    <ThemedText style={styles.deleteButtonText}>Удалить</ThemedText>
+                  </Pressable>
+                ) : null}
+              </View>
+            </KeyboardAwareScrollView>
+          </SafeAreaView>
+        </View>
+      </KeyboardProvider>
     </Modal>
   );
 }
@@ -297,9 +304,12 @@ const styles = StyleSheet.create({
   modalSafeArea: {
     width: '100%',
     overflow: 'hidden',
+    maxHeight: '92%',
+  },
+  modalScroll: {
+    flexGrow: 0,
   },
   modalCard: {
-    maxHeight: '92%',
     borderTopWidth: 1,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,

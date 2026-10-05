@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MaxContentWidth, Spacing } from '@/shared/config/theme';
@@ -27,65 +25,62 @@ export function Authorization() {
   return (
     <ThemedView style={styles.screen}>
       <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView
-          behavior={Platform.select({ ios: 'padding', default: undefined })}
+        <KeyboardAwareScrollView
           style={styles.keyboardView}
+          bottomOffset={Spacing.three}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.header}>
-              <View style={[styles.logo, { backgroundColor: theme.backgroundElement }]}>
-                <ThemedText style={styles.logoText}>M</ThemedText>
-              </View>
-
-              <View style={styles.titleBlock}>
-                <ThemedText type="subtitle" style={styles.title}>
-                  {isSignUp ? 'Создай аккаунт' : 'С возвращением'}
-                </ThemedText>
-                <ThemedText type="default" themeColor="textSecondary" style={styles.subtitle}>
-                  {isSignUp
-                    ? 'Начни вести доходы, расходы и бюджеты в одном месте.'
-                    : 'Войди, чтобы продолжить управлять своими финансами.'}
-                </ThemedText>
-              </View>
+          <View style={styles.header}>
+            <View style={[styles.logo, { backgroundColor: theme.backgroundElement }]}>
+              <ThemedText style={styles.logoText}>M</ThemedText>
             </View>
 
-            <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
-              <View style={[styles.segmentedControl, { backgroundColor: theme.background }]}>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => setMode('sign-in')}
-                  style={[
-                    styles.segmentButton,
-                    !isSignUp && { backgroundColor: theme.backgroundSelected },
-                  ]}
-                >
-                  <ThemedText type="smallBold">Вход</ThemedText>
-                </Pressable>
-
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => setMode('sign-up')}
-                  style={[
-                    styles.segmentButton,
-                    isSignUp && { backgroundColor: theme.backgroundSelected },
-                  ]}
-                >
-                  <ThemedText type="smallBold">Регистрация</ThemedText>
-                </Pressable>
-              </View>
-
-              {isSignUp ? (
-                <SignUpForm onSignInPress={() => setMode('sign-in')} />
-              ) : (
-                <SignInForm onSignUpPress={() => setMode('sign-up')} />
-              )}
+            <View style={styles.titleBlock}>
+              <ThemedText type="subtitle" style={styles.title}>
+                {isSignUp ? 'Создай аккаунт' : 'С возвращением'}
+              </ThemedText>
+              <ThemedText type="default" themeColor="textSecondary" style={styles.subtitle}>
+                {isSignUp
+                  ? 'Начни вести доходы, расходы и бюджеты в одном месте.'
+                  : 'Войди, чтобы продолжить управлять своими финансами.'}
+              </ThemedText>
             </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
+          </View>
+
+          <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
+            <View style={[styles.segmentedControl, { backgroundColor: theme.background }]}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setMode('sign-in')}
+                style={[
+                  styles.segmentButton,
+                  !isSignUp && { backgroundColor: theme.backgroundSelected },
+                ]}
+              >
+                <ThemedText type="smallBold">Вход</ThemedText>
+              </Pressable>
+
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => setMode('sign-up')}
+                style={[
+                  styles.segmentButton,
+                  isSignUp && { backgroundColor: theme.backgroundSelected },
+                ]}
+              >
+                <ThemedText type="smallBold">Регистрация</ThemedText>
+              </Pressable>
+            </View>
+
+            {isSignUp ? (
+              <SignUpForm onSignInPress={() => setMode('sign-in')} />
+            ) : (
+              <SignInForm onSignUpPress={() => setMode('sign-up')} />
+            )}
+          </View>
+        </KeyboardAwareScrollView>
       </SafeAreaView>
     </ThemedView>
   );

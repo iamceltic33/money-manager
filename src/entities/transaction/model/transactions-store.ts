@@ -1,3 +1,4 @@
+import { beginAppTask } from '@/shared/model/restart-guard';
 import { showErrorToast } from '@/shared/model/toast-store';
 import { create } from 'zustand';
 
@@ -5,7 +6,7 @@ import {
   createLocalTransaction,
   deleteLocalTransaction,
   getLocalBalance,
-  getLocalTransactions,
+  getLocalTransactionsPage,
   updateLocalTransaction,
 } from '../api/transactions';
 import type {
@@ -21,7 +22,8 @@ type UpdateTransactionParams = Omit<UpdateLocalTransactionParams, 'userId'>;
 type Store = {
   userId: string | null;
   balance: number;
-  history: LocalTransaction[];
+  recentTransactions: LocalTransaction[];
+  revision: number;
   initialized: boolean;
   init: (userId: string) => Promise<void>;
   reset: () => void;
@@ -33,16 +35,15 @@ type Store = {
   ) => Promise<void>;
   updateTransaction: (params: UpdateTransactionParams) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
-  getTransaction: (id: string) => LocalTransaction | null;
 };
 
 async function getLocalSummary(userId: string) {
-  const [balance, history] = await Promise.all([
+  const [balance, page] = await Promise.all([
     getLocalBalance(userId),
-    getLocalTransactions(userId),
+    getLocalTransactionsPage({ userId, limit: 20 }),
   ]);
 
-  return { balance, history };
+  return { balance, recentTransactions: page.items };
 }
 
 function getRequiredUserId() {
@@ -58,7 +59,8 @@ function getRequiredUserId() {
 export const useTransactionsStore = create<Store>((set, get) => ({
   userId: null,
   balance: 0,
-  history: [],
+  recentTransactions: [],
+  revision: 0,
   initialized: false,
   init: async (userId) => {
     if (get().initialized && get().userId === userId) return;
@@ -66,13 +68,14 @@ export const useTransactionsStore = create<Store>((set, get) => ({
     set({ userId });
 
     try {
-      const { balance, history } = await getLocalSummary(userId);
+      const { balance, recentTransactions } = await getLocalSummary(userId);
       if (get().userId !== userId) return;
 
       set({
         userId,
         balance,
-        history,
+        recentTransactions,
+        revision: get().revision + 1,
         initialized: true,
       });
     } catch (error) {
@@ -83,25 +86,28 @@ export const useTransactionsStore = create<Store>((set, get) => ({
     set({
       userId: null,
       balance: 0,
-      history: [],
+      recentTransactions: [],
+      revision: get().revision + 1,
       initialized: false,
     });
   },
   refresh: async () => {
     try {
       const userId = getRequiredUserId();
-      const { balance, history } = await getLocalSummary(userId);
+      const { balance, recentTransactions } = await getLocalSummary(userId);
       if (get().userId !== userId) return;
 
       set({
         balance,
-        history,
+        recentTransactions,
+        revision: get().revision + 1,
       });
     } catch (error) {
       showErrorToast(error, 'Не удалось обновить локальные данные');
     }
   },
   createTransaction: async (amount, type, params) => {
+    const finish = beginAppTask();
     try {
       const userId = getRequiredUserId();
 
@@ -117,6 +123,7 @@ export const useTransactionsStore = create<Store>((set, get) => ({
 
       set({
         ...summary,
+        revision: get().revision + 1,
         initialized: true,
       });
     } catch (error) {
@@ -125,9 +132,12 @@ export const useTransactionsStore = create<Store>((set, get) => ({
         type === 'income' ? 'Не удалось добавить доход' : 'Не удалось добавить расход'
       );
       throw error;
+    } finally {
+      finish();
     }
   },
   updateTransaction: async (params) => {
+    const finish = beginAppTask();
     try {
       const userId = getRequiredUserId();
 
@@ -141,14 +151,18 @@ export const useTransactionsStore = create<Store>((set, get) => ({
 
       set({
         ...summary,
+        revision: get().revision + 1,
         initialized: true,
       });
     } catch (error) {
       showErrorToast(error, 'Не удалось обновить операцию');
       throw error;
+    } finally {
+      finish();
     }
   },
   deleteTransaction: async (id) => {
+    const finish = beginAppTask();
     try {
       const userId = getRequiredUserId();
 
@@ -162,14 +176,14 @@ export const useTransactionsStore = create<Store>((set, get) => ({
 
       set({
         ...summary,
+        revision: get().revision + 1,
         initialized: true,
       });
     } catch (error) {
       showErrorToast(error, 'Не удалось удалить операцию');
       throw error;
+    } finally {
+      finish();
     }
-  },
-  getTransaction: (id) => {
-    return get().history.find((item) => item.id === id) ?? null;
   },
 }));

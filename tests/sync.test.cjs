@@ -131,10 +131,12 @@ test('same-timestamp edits increment revision while sync metadata does not', asy
 });
 
 test('concurrent synchronization calls share one run; different accounts are serialized', async () => {
+  const restartGuard = load('src/shared/model/restart-guard.ts');
   let release;
   const gate = new Promise(resolve => { release = resolve; });
   let count = 0;
   const { synchronize } = load('src/features/sync/model/synchronize.ts', {
+    '@/shared/model/restart-guard': restartGuard,
     '@/shared/api/local-db': { getLocalDb: async () => ({}) },
     '@/shared/api/supabase': { supabase: { auth: { getSession: async () => ({data:{session:{user:{id:'A'},access_token:'test'}},error:null}) } } },
     '../api/remote': { createSyncRemote: () => ({}) },
@@ -143,9 +145,12 @@ test('concurrent synchronization calls share one run; different accounts are ser
   const first = synchronize('A'); const second = synchronize('A');
   assert.equal(first,second);
   const changedAccount = synchronize('B');
+  assert.equal(restartGuard.useRestartGuard.getState().activeTasks, 2);
+  assert.equal(restartGuard.tryBeginRestart(), false);
   release(); await first;
   await assert.rejects(changedAccount,/Аккаунт изменился/);
   assert.equal(count,1);
+  assert.equal(restartGuard.tryBeginRestart(), true);
 });
 
 test('logout during category loading does not restore previous account data', async () => {
