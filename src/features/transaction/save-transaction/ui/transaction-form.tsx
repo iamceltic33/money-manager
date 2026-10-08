@@ -1,3 +1,4 @@
+import { ObligationPaymentField } from './obligation-payment-field';
 import { TransactionCategoryField } from "@/entities/category";
 import { formatTransactionAmountInput, isTransactionAmountInputAllowed, parseTransactionAmountInput } from "@/entities/transaction";
 import { MaxContentWidth, Spacing } from "@/shared/config";
@@ -13,9 +14,11 @@ export type TransactionFormValues = {
     categoryId: string | null;
     date: Date;
     excludeFromAverage?: boolean;
+    obligationPaymentId?: string | null;
 };
 
 type Props = {
+    transactionId?: string;
     title: string;
     buttonText: string;
     onSubmit: (values: TransactionFormValues) => void | Promise<void>;
@@ -35,6 +38,7 @@ export function TransactionForm(props: Props) {
     const [amountText, setAmountText] = useState<string>(
         defaultValues?.amount === undefined ? '' : formatTransactionAmountInput(defaultValues.amount)
     );
+    const [obligationPaymentId, setObligationPaymentId] = useState(defaultValues?.obligationPaymentId);
     const [date, setDate] = useState(defaultValues?.date ?? new Date());
     const [categoryId, setCategoryId] = useState<string | null>(defaultValues?.categoryId ?? null);
     const [note, setNote] = useState(defaultValues?.note ?? '');
@@ -64,6 +68,7 @@ export function TransactionForm(props: Props) {
                 note: note.trim() || null,
                 categoryId,
                 excludeFromAverage,
+                ...(props.type === 'expense' ? { obligationPaymentId } : {}),
             });
         } finally {
             setIsSubmitting(false);
@@ -104,6 +109,14 @@ export function TransactionForm(props: Props) {
             value={categoryId}
             onChange={setCategoryId}
         />
+
+        {props.type === 'expense' ? <ObligationPaymentField value={obligationPaymentId} transactionId={props.transactionId} onChange={(id, selection) => {
+            setObligationPaymentId(id);
+            if (selection && selection.payment.id !== obligationPaymentId) {
+                setAmountText(formatTransactionAmountInput(selection.payment.amount));
+                setCategoryId(selection.categoryId);
+            }
+        }} /> : null}
 
         <View style={styles.noteField}>
             <ThemedText type="smallBold">Заметка</ThemedText>

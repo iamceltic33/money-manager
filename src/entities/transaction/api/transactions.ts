@@ -1,3 +1,4 @@
+import { runLocalWrite, withLocalTransaction } from '@/shared/api/local-db/write-coordinator';
 import { randomUUID } from 'expo-crypto';
 
 import { getLocalDb } from '@/shared/api/local-db';
@@ -17,7 +18,7 @@ type BalanceRow = {
   balance: number | null;
 };
 
-export async function createLocalTransaction(params: CreateLocalTransactionParams) {
+async function createLocalTransactionImpl(params: CreateLocalTransactionParams) {
   const database = await getLocalDb();
   const now = new Date().toISOString();
   const id = randomUUID();
@@ -57,6 +58,7 @@ export async function createLocalTransaction(params: CreateLocalTransactionParam
     params.excludeFromAverage ? 1 : 0
   );
 
+  await savePaymentLink(database, params.userId, id, params.obligationPaymentId);
   const transaction = await getLocalTransactionById(params.userId, id);
 
   if (!transaction) {
@@ -80,7 +82,7 @@ export async function getLocalTransactionById(userId: string, id: string) {
   );
 }
 
-export async function updateLocalTransaction(params: UpdateLocalTransactionParams) {
+async function updateLocalTransactionImpl(params: UpdateLocalTransactionParams) {
   const database = await getLocalDb();
   const currentTransaction = await getLocalTransactionById(params.userId, params.id);
 
@@ -122,6 +124,7 @@ export async function updateLocalTransaction(params: UpdateLocalTransactionParam
     params.id
   );
 
+  await savePaymentLink(database, params.userId, params.id, params.obligationPaymentId);
   const updatedTransaction = await getLocalTransactionById(params.userId, params.id);
 
   if (!updatedTransaction) {
@@ -131,7 +134,7 @@ export async function updateLocalTransaction(params: UpdateLocalTransactionParam
   return updatedTransaction;
 }
 
-export async function deleteLocalTransaction(params: DeleteLocalTransactionParams) {
+async function deleteLocalTransactionImpl(params: DeleteLocalTransactionParams) {
   const database = await getLocalDb();
   const currentTransaction = await getLocalTransactionById(params.userId, params.id);
 
@@ -257,4 +260,33 @@ export async function getPendingLocalTransactions(userId: string) {
     `,
     userId
   );
+}
+
+export const createLocalTransaction = async (...args: Parameters<typeof createLocalTransactionImpl>) => withLocalTransaction(await getLocalDb(), () => createLocalTransactionImpl(...args));
+
+export const updateLocalTransaction = async (...args: Parameters<typeof updateLocalTransactionImpl>) => withLocalTransaction(await getLocalDb(), () => updateLocalTransactionImpl(...args));
+
+export const deleteLocalTransaction = (...args: Parameters<typeof deleteLocalTransactionImpl>) => runLocalWrite(() => deleteLocalTransactionImpl(...args));
+
+async function savePaymentLink(database: Awaited<ReturnType<typeof getLocalDb>>, userId: string, transactionId: string, paymentId: string | null | undefined) {
+  // Undefined preserves a link for callers that do not edit this field.
+  if (paymentId === undefined) return;
+  if (paymentId) {
+    const target = await database.getFirstAsync<{ transaction_id: string | null }>(
+      'select transaction_id from obligation_payments where user_id = ? and id = ?;', userId, paymentId);
+    if (!target) throw new Error('Платёж больше не существует. Выберите другой платёж');
+    if (target.transaction_id && target.transaction_id !== transactionId) throw new Error('Этот платёж уже связан с другим расходом');
+  }
+  const now = new Date().toISOString();
+  const previous = await database.getAllAsync<{ id: string; obligation_id: string }>(
+    'select id, obligation_id from obligation_payments where user_id = ? and transaction_id = ?;', userId, transactionId);
+  for (const row of previous) {
+    if (row.id === paymentId) continue;
+    await database.runAsync("update obligation_payments set transaction_id = null, updated_at = ?, sync_status = 'pending', sync_error = null where user_id = ? and id = ?;", now, userId, row.id);
+    await database.runAsync("update obligations set updated_at = ?, sync_status = 'pending', sync_error = null where user_id = ? and id = ?;", now, userId, row.obligation_id);
+  }
+  if (paymentId) {
+    await database.runAsync("update obligation_payments set transaction_id = ?, updated_at = ?, sync_status = 'pending', sync_error = null where user_id = ? and id = ?;", transactionId, now, userId, paymentId);
+    await database.runAsync("update obligations set updated_at = ?, sync_status = 'pending', sync_error = null where user_id = ? and id = (select obligation_id from obligation_payments where user_id = ? and id = ?);", now, userId, userId, paymentId);
+  }
 }

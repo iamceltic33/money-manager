@@ -116,6 +116,27 @@ export type Database = {
         }
         Relationships: []
       }
+      obligations: {
+        Row: { id: string; user_id: string; name: string; category_id: string | null; payment_mode: string;
+          monthly_amount: number | null; payment_day: number | null; first_payment_date: string; last_payment_date: string;
+          created_at: string; updated_at: string }
+        Insert: { id?: string; user_id: string; name: string; category_id?: string | null; payment_mode: string;
+          monthly_amount?: number | null; payment_day?: number | null; first_payment_date: string; last_payment_date: string;
+          created_at?: string; updated_at?: string }
+        Update: { id?: string; user_id?: string; name?: string; category_id?: string | null; payment_mode?: string;
+          monthly_amount?: number | null; payment_day?: number | null; first_payment_date?: string; last_payment_date?: string;
+          created_at?: string; updated_at?: string }
+        Relationships: []
+      }
+      obligation_payments: {
+        Row: { id: string; user_id: string; obligation_id: string; due_date: string; amount: number; transaction_id: string | null;
+          created_at: string; updated_at: string }
+        Insert: { id?: string; user_id: string; obligation_id: string; due_date: string; amount: number; transaction_id?: string | null;
+          created_at?: string; updated_at?: string }
+        Update: { id?: string; user_id?: string; obligation_id?: string; due_date?: string; amount?: number; transaction_id?: string | null;
+          created_at?: string; updated_at?: string }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -203,6 +224,7 @@ export type Database = {
         }
         Returns: Json
       }
+      remove_sync_obligation: { Args: { obligation_id: string }; Returns: undefined }
       get_current_balance: { Args: never; Returns: number }
       get_sync_snapshot: { Args: never; Returns: Json }
       initialize_account_data: {

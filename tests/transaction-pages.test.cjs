@@ -95,7 +95,7 @@ test('v8 upgrade preserves records, is repeatable and uses index for cursor orde
   const { runLocalMigrations } = load('src/shared/api/local-db/migrations.ts');
   await runLocalMigrations(f.database);
   await runLocalMigrations(f.database);
-  assert.equal((await f.database.getFirstAsync('PRAGMA user_version;')).user_version, 9);
+  assert.equal((await f.database.getFirstAsync('PRAGMA user_version;')).user_version, 11);
   assert.deepEqual(await f.api.getLocalTransactions('alice'), before);
   const plan = await f.database.getAllAsync(`explain query plan select * from transactions
     where user_id = ? and (occurred_at, created_at, id) < (?, ?, ?)

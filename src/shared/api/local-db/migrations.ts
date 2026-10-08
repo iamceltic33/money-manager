@@ -3,8 +3,10 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { prepareLocalSyncSchema } from './prepare-local-sync-schema';
 import { prepareDeletionQueue } from './prepare-deletion-queue';
 import { prepareSyncTracking } from './prepare-sync-tracking';
+import { prepareObligationsSync } from './prepare-obligations-sync';
+import { prepareObligationsSchema } from './prepare-obligations-schema';
 
-const DATABASE_VERSION = 9;
+const DATABASE_VERSION = 11;
 
 type UserVersionRow = {
   user_version: number;
@@ -179,6 +181,14 @@ export async function runLocalMigrations(database: SQLiteDatabase) {
         create index if not exists transactions_user_page_idx
         on transactions(user_id, occurred_at desc, created_at desc, id desc);
       `);
+    }
+
+    if (currentVersion < 10) {
+      await prepareObligationsSchema(database);
+    }
+
+    if (currentVersion < 11) {
+      await prepareObligationsSync(database);
     }
 
     await database.execAsync(`PRAGMA user_version = ${DATABASE_VERSION};`);

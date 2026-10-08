@@ -26,6 +26,7 @@ export type CreateLocalTransactionParams = {
   note?: string | null;
   occurredAt?: Date;
   excludeFromAverage?: boolean;
+  obligationPaymentId?: string | null;
 };
 
 export type UpdateLocalTransactionParams = {
@@ -37,6 +38,7 @@ export type UpdateLocalTransactionParams = {
   note?: string | null;
   occurredAt?: Date;
   excludeFromAverage?: boolean;
+  obligationPaymentId?: string | null;
 };
 
 export type DeleteLocalTransactionParams = {

@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 import type { Database, Json } from '@/shared/api/supabase/database.types';
 
-import type { CloudRow, SyncRemote, SyncSnapshot } from './types';
+import type { CloudCategory, CloudTransaction, CloudObligation, CloudObligationPayment, CloudRow, SyncRemote, SyncSnapshot } from './types';
 
 export const createSyncRemote = (userId: string, accessToken: string): SyncRemote => {
   // Сессия закреплена за запуском: смена аккаунта не меняет владельца запросов в полёте.
@@ -40,6 +40,16 @@ export const createSyncRemote = (userId: string, accessToken: string): SyncRemot
       if (error) throw new Error(error.message);
       return data as unknown as CloudRow;
     },
+    ensureRow: async (table, row) => {
+      if (row.user_id !== userId) throw new Error('Неверный владелец записи');
+      const options = { onConflict: 'id', ignoreDuplicates: true };
+      const query = table === 'categories' ? client.from('categories').upsert(row as CloudCategory, options)
+        : table === 'transactions' ? client.from('transactions').upsert(row as CloudTransaction, options)
+        : table === 'obligations' ? client.from('obligations').upsert(row as CloudObligation, options)
+        : client.from('obligation_payments').upsert(row as CloudObligationPayment, options);
+      const { error } = await query.abortSignal(AbortSignal.timeout(20000));
+      if (error) throw new Error(error.message);
+    },
     ensureCategory: async (row) => {
       if (row.user_id !== userId) throw new Error('Неверный владелец категории');
       // Восстанавливаем связь локальной правки, только если категория удалена в облаке.
@@ -50,6 +60,11 @@ export const createSyncRemote = (userId: string, accessToken: string): SyncRemot
       if (error) throw new Error(error.message);
     },
     remove: async (table, id) => {
+      if (table === 'obligations') {
+        const { error } = await client.rpc('remove_sync_obligation', { obligation_id: id }).abortSignal(AbortSignal.timeout(20000));
+        if (error) throw new Error(error.message);
+        return;
+      }
       const { error } = await client.from(table).delete().eq('user_id', userId).eq('id', id)
         .abortSignal(AbortSignal.timeout(20000));
       if (error) throw new Error(error.message);

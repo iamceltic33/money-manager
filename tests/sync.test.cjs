@@ -175,7 +175,8 @@ test('edit between incoming delete marking and delete keeps row and clears marke
     const result=await original(query,...args);
     if(query.includes('update transactions set remote_deleted = 1')&&!edited){
       edited=true;
-      await f.api.updateLocalTransaction({userId:f.userId,id:f.transaction.id,amount:88});
+      // Simulate an external write at the mark/delete boundary; API writes are now queued.
+      f.database.sql.prepare("update transactions set amount=88,sync_status='pending' where id=?").run(f.transaction.id);
     }
     return result;
   };

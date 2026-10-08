@@ -4,14 +4,14 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Spacing } from '@/shared/config/theme';
 import { useTheme } from '@/shared/lib/theme/use-theme';
 import { ThemedText } from '@/shared/ui/themed-text';
-import {
-  calculateBalanceAfterWeeks,
-  calculateWeeksUntilNegativeBalance,
-} from '@/shared/utils/forecast-calculations';
+import type { LocalObligation, LocalObligationPayment } from '@/entities/obligation';
+import { forecastWeekCount, forecastWeeks } from '../model/payment-forecast';
 
 type Props = {
   balance: number;
-  averageWeeklyExpense: number;
+  averageWeeklyExpense?: number;
+  payments: LocalObligationPayment[];
+  obligations: LocalObligation[];
   startDate: Date;
 };
 
@@ -21,10 +21,10 @@ const amountFormatter = new Intl.NumberFormat('ru-RU', {
   maximumFractionDigits: 2,
 });
 
-export function WeeklyExpenseForecast({ balance, averageWeeklyExpense, startDate }: Props) {
+export function WeeklyExpenseForecast({ balance, averageWeeklyExpense, startDate, payments, obligations }: Props) {
   const theme = useTheme();
   const [visibleWeeks, setVisibleWeeks] = useState(PAGE_SIZE);
-  const totalWeeks = calculateWeeksUntilNegativeBalance(balance, averageWeeklyExpense);
+  const totalWeeks = forecastWeekCount(balance, averageWeeklyExpense ?? 0, payments, startDate);
 
   if (totalWeeks === null || totalWeeks === 0) return null;
 
@@ -33,25 +33,23 @@ export function WeeklyExpenseForecast({ balance, averageWeeklyExpense, startDate
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundElement }]}>
       <ThemedText type="smallBold">Динамика расходов по неделям</ThemedText>
+      {averageWeeklyExpense === undefined ? <ThemedText type="small" themeColor="textSecondary">Показаны только известные платежи. Обычные расходы пока не оценены; остаток без них может быть завышен.</ThemedText> : null}
       <View style={styles.amounts}>
         <ThemedText type="small" themeColor="textSecondary" style={styles.column}>Расход</ThemedText>
         <ThemedText type="small" themeColor="textSecondary" style={styles.column}>Остаток</ThemedText>
       </View>
-      {Array.from({ length: displayedWeeks }, (_, index) => {
-        const week = index + 1;
-        const date = new Date(startDate);
-        date.setDate(date.getDate() + week * 7);
-        const remainingBalance = calculateBalanceAfterWeeks(balance, averageWeeklyExpense, week);
+      {forecastWeeks(balance, averageWeeklyExpense ?? 0, payments, startDate, displayedWeeks).map(row => {
+        const { week, remainingBalance } = row;
         const isNegative = remainingBalance < 0;
-
+        const formatDate = (date: Date) => date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
         return (
           <View key={week} style={[styles.week, { borderTopColor: theme.backgroundSelected }]}>
             <ThemedText type="smallBold">
-              Неделя {week} · {date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })}
+              Неделя {week} · {formatDate(row.start)} — {formatDate(row.end)}
             </ThemedText>
             <View style={styles.amounts}>
               <View style={styles.column}>
-                <ThemedText type="small" style={styles.negative}>≈ −{amountFormatter.format(averageWeeklyExpense)}</ThemedText>
+                <ThemedText type="small" style={styles.negative}>≈ −{amountFormatter.format(row.totalExpense)}</ThemedText>
               </View>
               <View style={styles.column}>
                 <ThemedText type="smallBold" style={isNegative ? styles.negative : styles.positive}>
@@ -59,6 +57,10 @@ export function WeeklyExpenseForecast({ balance, averageWeeklyExpense, startDate
                 </ThemedText>
               </View>
             </View>
+            <ThemedText type="small" themeColor="textSecondary">Обычные расходы: {averageWeeklyExpense === undefined ? 'не оценены' : `≈ ${amountFormatter.format(row.ordinaryExpense)}`} · Платежи: {amountFormatter.format(row.paymentExpense)}</ThemedText>
+            {row.payments.map(({ payment, overdue }) => <ThemedText key={payment.id} type="small" themeColor="textSecondary">
+              {obligations.find(parent => parent.id === payment.obligation_id)?.name ?? 'Обязательство'} · {payment.due_date.split('-').reverse().join('.')} · {amountFormatter.format(payment.amount)} KZT{overdue ? ' · просрочен, учтён сегодня' : ''}
+            </ThemedText>)}
             {isNegative ? <ThemedText type="small" style={styles.negative}>Баланс уйдёт в минус</ThemedText> : null}
           </View>
         );

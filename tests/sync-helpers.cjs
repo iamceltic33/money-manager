@@ -1,7 +1,8 @@
 const { readFileSync } = require('node:fs');
 const { resolve, dirname } = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
-const { randomUUID } = require('node:crypto');
+const { randomUUID, createHash } = require('node:crypto');
+let writeCoordinator;
 const vm = require('node:vm');
 const ts = require('typescript');
 
@@ -14,7 +15,9 @@ const load = (path, overrides = {}) => {
     exports, Date, Promise, Map, Set, AbortSignal, process,
     require: (name) => {
       if (name in overrides) return overrides[name];
-      if (name === 'expo-crypto') return { randomUUID };
+      if (name === 'expo-crypto') return { randomUUID, CryptoDigestAlgorithm: { SHA256: 'SHA-256' }, digestStringAsync: async (_, value) => createHash('sha256').update(value).digest('hex') };
+      if (name === '@/shared/api/local-db/write-coordinator') return writeCoordinator ??= load('src/shared/api/local-db/write-coordinator.ts');
+      if (name === '@/entities/transaction/lib/amount') return load('src/entities/transaction/lib/amount.ts');
       if (name === '@/shared/model/restart-guard') return load('src/shared/model/restart-guard.ts', overrides);
       if (name.startsWith('.')) return load(resolve(dirname(file), name + '.ts'), overrides);
       return require(name);
@@ -44,6 +47,7 @@ const createApis = (database) => {
   const overrides = { '@/shared/api/local-db': { getLocalDb: async () => database } };
   return {
     ...load('src/entities/category/api/categories.ts', overrides),
+    ...load('src/entities/obligation/api/obligations.ts', overrides),
     ...load('src/entities/transaction/api/transactions.ts', {
       ...overrides, '../lib': load('src/entities/transaction/lib/amount.ts'),
     }),
@@ -51,7 +55,7 @@ const createApis = (database) => {
 };
 
 const createRemote = (userId) => {
-  const state = { categories: new Map(), transactions: new Map() };
+  const state = { categories: new Map(), transactions: new Map(), obligations: new Map(), obligation_payments: new Map() };
   let initialized = false;
   let clock = 0;
   const remote = {
@@ -71,7 +75,7 @@ const createRemote = (userId) => {
     },
     snapshot: async () => {
       await remote.beforeSnapshot?.();
-      const snapshot = structuredClone({ categories: [...state.categories.values()], transactions: [...state.transactions.values()] });
+      const snapshot = structuredClone({ categories: [...state.categories.values()], transactions: [...state.transactions.values()], obligations: [...state.obligations.values()], obligation_payments: [...state.obligation_payments.values()] });
       await remote.afterSnapshot?.();
       return snapshot;
     },
@@ -79,7 +83,15 @@ const createRemote = (userId) => {
       await remote.beforeUpsert?.(table, row);
       const existing = state[table].get(row.id);
       const comparable = value => JSON.stringify(Object.fromEntries(Object.entries(value).filter(([key]) => key !== 'updated_at').sort()));
-      if (table === 'transactions' && row.category_id && !state.categories.has(row.category_id)) throw Error('Missing category');
+      if ((table === 'transactions' || table === 'obligations') && row.category_id && !state.categories.has(row.category_id)) throw Error('Missing category');
+      if (table === 'obligation_payments') {
+        if (!state.obligations.has(row.obligation_id)) throw Error('Missing obligation');
+        if (row.transaction_id && !state.transactions.has(row.transaction_id)) throw Error('Missing transaction');
+        for (const other of state.obligation_payments.values()) {
+          if (other.id !== row.id && other.obligation_id === row.obligation_id && other.due_date.slice(0, 7) === row.due_date.slice(0, 7)) throw Error('Duplicate payment month');
+          if (other.id !== row.id && row.transaction_id && other.transaction_id === row.transaction_id) throw Error('Duplicate actual expense');
+        }
+      }
       const saved = existing && comparable(existing) === comparable(row) ? existing
         : { ...row, updated_at: new Date(Date.UTC(2026, 0, 1, 0, 0, ++clock)).toISOString() };
       state[table].set(row.id, structuredClone(saved));
@@ -88,10 +100,17 @@ const createRemote = (userId) => {
     },
     remove: async (table, id) => {
       state[table].delete(id);
-      if (table === 'categories') for (const row of state.transactions.values()) {
+      if (table === 'obligations') for (const row of state.obligation_payments.values()) {
+        if (row.obligation_id === id) state.obligation_payments.delete(row.id);
+      }
+      if (table === 'transactions') for (const row of state.obligation_payments.values()) {
+        if (row.transaction_id === id) row.transaction_id = null;
+      }
+      if (table === 'categories') for (const row of [...state.transactions.values(), ...state.obligations.values()]) {
         if (row.category_id === id) row.category_id = null;
       }
     },
+    ensureRow: async (table, row) => { if (!state[table].has(row.id)) state[table].set(row.id, structuredClone(row)); },
     ensureCategory: async row => {
       if (!state.categories.has(row.id)) state.categories.set(row.id, structuredClone(row));
     },

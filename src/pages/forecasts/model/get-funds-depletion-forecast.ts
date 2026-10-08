@@ -1,15 +1,16 @@
+import type { LocalObligationPayment } from '@/entities/obligation';
+import { calendarDay as getCalendarDay, dateAfterDays, depletionDays } from './payment-forecast';
 import type { LocalCategory } from '@/entities/category';
 import type { LocalTransaction } from '@/entities/transaction';
 import {
   calculateAverageDailyExpense,
   calculateAverageWeeklyExpense,
-  calculateDaysUntilFundsRunOut,
 } from '@/shared/utils/forecast-calculations';
 
-const DAY_MS = 86_400_000;
 
 type Params = {
   history: LocalTransaction[];
+  payments?: LocalObligationPayment[];
   categories: LocalCategory[];
   balance: number;
   now: Date;
@@ -21,7 +22,7 @@ type Result = {
   unavailableMessage?: string;
 };
 
-export function getFundsDepletionForecast({ history, categories, balance, now }: Params): Result {
+export function getFundsDepletionForecast({ history, categories, balance, now, payments = [] }: Params): Result {
   const today = getCalendarDay(now);
   const expenses = history
     .filter((transaction) => transaction.type === 'expense')
@@ -47,8 +48,10 @@ export function getFundsDepletionForecast({ history, categories, balance, now }:
   const excludedCategoryIds = new Set(categories
     .filter((category) => category.exclude_from_average === 1)
     .map((category) => category.id));
+  const linkedTransactionIds = new Set(payments.flatMap(row => row.transaction_id ? [row.transaction_id] : []));
   const totalExpenses = expenses.reduce((total, { transaction, day }) => {
     if (day < periodStart || day > calculationDay
+      || linkedTransactionIds.has(transaction.id)
       || transaction.exclude_from_average === 1
       || (transaction.category_id !== null && excludedCategoryIds.has(transaction.category_id))) {
       return total;
@@ -57,22 +60,17 @@ export function getFundsDepletionForecast({ history, categories, balance, now }:
     return total + transaction.amount;
   }, 0);
   const dailyExpense = calculateAverageDailyExpense(totalExpenses, calculationDay - periodStart + 1)!;
-  const remainingDays = calculateDaysUntilFundsRunOut(balance, dailyExpense);
+  const remainingDays = depletionDays(balance, dailyExpense, payments, now);
 
   if (remainingDays === null) {
-    return { estimatedDate: null, unavailableMessage: 'Нет учитываемых расходов за расчётный период' };
+    return { estimatedDate: null, averageWeeklyExpense: calculateAverageWeeklyExpense(dailyExpense), unavailableMessage: 'Средств хватает на известные платежи; дата исчерпания не определена при нулевом обычном расходе' };
   }
 
-  const estimatedDate = new Date(now);
-  estimatedDate.setDate(estimatedDate.getDate() + Math.ceil(remainingDays));
+  const estimatedDate = dateAfterDays(now, remainingDays);
 
   if (!Number.isFinite(estimatedDate.getTime())) {
     return { estimatedDate: null, unavailableMessage: 'Дата выходит за пределы доступного расчёта' };
   }
 
   return { estimatedDate, averageWeeklyExpense: calculateAverageWeeklyExpense(dailyExpense) };
-}
-
-function getCalendarDay(date: Date) {
-  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / DAY_MS;
 }

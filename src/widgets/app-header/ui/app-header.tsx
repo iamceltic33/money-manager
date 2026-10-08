@@ -56,7 +56,7 @@ export function AppHeader() {
   };
 
   const goBack = () => {
-    if ((pathname === '/categories' || pathname === '/forecasts' || pathname === '/reports') && router.canGoBack()) {
+    if ((pathname === '/categories' || pathname === '/forecasts' || pathname === '/reports' || pathname === '/obligations') && router.canGoBack()) {
       router.back();
       return;
     }
@@ -201,6 +201,11 @@ export function AppHeader() {
                 >
                   <ChartBar color={theme.text} size={20} strokeWidth={2.2} />
                   <ThemedText type="smallBold">Отчёты</ThemedText>
+                </Pressable>
+
+                <Pressable accessibilityRole="button" onPress={() => { setIsMenuOpen(false); router.push('/obligations'); }} style={[styles.menuItem, { backgroundColor: theme.backgroundElement }]}>
+                  <ChartBar color={theme.text} size={20} />
+                  <ThemedText type="smallBold">Кредиты и рассрочки</ThemedText>
                 </Pressable>
 
                 <Pressable

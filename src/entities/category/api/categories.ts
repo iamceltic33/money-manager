@@ -1,3 +1,4 @@
+import { runLocalWrite } from '@/shared/api/local-db/write-coordinator';
 import { randomUUID } from 'expo-crypto';
 
 import { getLocalDb } from '@/shared/api/local-db';
@@ -32,7 +33,7 @@ const ensureCategoryNameAvailable = async (
   }
 };
 
-export async function createLocalCategory(params: CreateLocalCategoryParams) {
+async function createLocalCategoryImpl(params: CreateLocalCategoryParams) {
   const database = await getLocalDb();
   const now = new Date().toISOString();
   const id = randomUUID();
@@ -123,7 +124,7 @@ export async function getLocalCategories(userId: string, type?: LocalCategoryTyp
   );
 }
 
-export async function updateLocalCategory(params: UpdateLocalCategoryParams) {
+async function updateLocalCategoryImpl(params: UpdateLocalCategoryParams) {
   const database = await getLocalDb();
   const currentCategory = await getLocalCategoryById(params.userId, params.id);
 
@@ -177,7 +178,7 @@ export async function updateLocalCategory(params: UpdateLocalCategoryParams) {
   return updatedCategory;
 }
 
-export async function deleteLocalCategory(userId: string, id: string) {
+async function deleteLocalCategoryImpl(userId: string, id: string) {
   const database = await getLocalDb();
 
   await database.runAsync(
@@ -203,3 +204,9 @@ export async function getPendingLocalCategories(userId: string) {
     userId
   );
 }
+
+export const createLocalCategory = (...args: Parameters<typeof createLocalCategoryImpl>) => runLocalWrite(() => createLocalCategoryImpl(...args));
+
+export const updateLocalCategory = (...args: Parameters<typeof updateLocalCategoryImpl>) => runLocalWrite(() => updateLocalCategoryImpl(...args));
+
+export const deleteLocalCategory = (...args: Parameters<typeof deleteLocalCategoryImpl>) => runLocalWrite(() => deleteLocalCategoryImpl(...args));
