@@ -1,246 +1,82 @@
 import { usePathname, useRouter } from 'expo-router';
-import { ChartBar, ChartNoAxesCombined, ChevronLeft, LogOut, Menu, Shapes, X } from 'lucide-react-native';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Animated,
-  Modal,
-  Pressable,
-  StyleSheet,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { ChevronLeft } from 'lucide-react-native';
+import { useCallback, useEffect, useMemo } from 'react';
+import { BackHandler, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTransactionsStore } from '@/entities/transaction';
 import { useAuthStore } from '@/features/auth';
 import { SyncButton } from '@/features/sync';
-import { signOut } from '@/shared/api/supabase/authorization';
 import { Spacing } from '@/shared/config/theme';
 import { useTheme } from '@/shared/lib/theme/use-theme';
-import { showErrorToast } from '@/shared/model/toast-store';
+import { goBack as navigateBack, isMainRoute } from '@/shared/lib/navigation/go-back';
 import { ThemedText } from '@/shared/ui/themed-text';
 import { ThemedView } from '@/shared/ui/themed-view';
-
-const DRAWER_WIDTH = 300;
 
 export function AppHeader() {
   const theme = useTheme();
   const router = useRouter();
   const pathname = usePathname();
-  const showBackButton = pathname !== '/';
-  const { width } = useWindowDimensions();
-  const { balance, initialized } = useTransactionsStore();
+  const showBackButton = !isMainRoute(pathname);
+  const balance = useTransactionsStore(state => state.balance);
+  const initialized = useTransactionsStore(state => state.initialized);
   const userId = useAuthStore(state => state.session?.user.id);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const drawerPosition = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
-  const drawerWidth = Math.min(DRAWER_WIDTH, width * 0.86);
   const formattedBalance = useMemo(
-    () =>
-      new Intl.NumberFormat('ru-RU', {
-        maximumFractionDigits: 0,
-      }).format(balance),
+    () => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(balance),
     [balance]
   );
+  const goBack = useCallback(() => navigateBack(router, pathname), [router, pathname]);
 
   useEffect(() => {
-    Animated.timing(drawerPosition, {
-      toValue: isMenuOpen ? 0 : -drawerWidth,
-      duration: 220,
-      useNativeDriver: true,
-    }).start();
-  }, [drawerPosition, drawerWidth, isMenuOpen]);
-
-  const openCategories = () => {
-    setIsMenuOpen(false);
-    router.push('/categories');
-  };
-
-  const goBack = () => {
-    if ((pathname === '/categories' || pathname === '/forecasts' || pathname === '/reports' || pathname === '/obligations') && router.canGoBack()) {
-      router.back();
-      return;
-    }
-    if (pathname.startsWith('/transactions/')) {
-      if (router.canGoBack()) router.back();
-      else router.replace('/transactions');
-      return;
-    }
-    router.dismissTo('/');
-  };
-
-  const openForecasts = () => {
-    setIsMenuOpen(false);
-    router.push('/forecasts');
-  };
-
-  const handleSignOut = async () => {
-    try {
-      setIsMenuOpen(false);
-      await signOut();
-    } catch (error) {
-      showErrorToast(error, 'Не удалось выйти из аккаунта');
-    }
-  };
+    if (Platform.OS !== 'android' || pathname === '/') return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      goBack();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [goBack, pathname]);
 
   return (
-    <>
-      <ThemedView style={styles.header} type="background">
-        <SafeAreaView edges={['top']} style={styles.safeArea}>
-          <View style={styles.headerContent}>
+    <ThemedView style={styles.header} type="background">
+      <SafeAreaView edges={['top']} style={styles.safeArea}>
+        <View style={styles.headerContent}>
+          {showBackButton ? (
             <Pressable
-              accessibilityLabel={showBackButton ? 'Назад' : 'Открыть меню'}
+              accessibilityLabel="Назад"
               accessibilityRole="button"
-              onPress={showBackButton ? goBack : () => setIsMenuOpen(true)}
+              onPress={goBack}
               style={({ pressed }) => [
                 styles.iconButton,
                 { backgroundColor: theme.backgroundElement },
                 pressed && styles.pressed,
               ]}
             >
-              {showBackButton ? (
-                <ChevronLeft color={theme.text} size={22} strokeWidth={2.4} />
-              ) : (
-                <Menu color={theme.text} size={22} strokeWidth={2.2} />
-              )}
+              <ChevronLeft color={theme.text} size={22} strokeWidth={2.4} />
             </Pressable>
+          ) : <View style={styles.iconButton} />}
 
-            <View
-              accessibilityLabel={
-                initialized
-                  ? `Общий баланс ${formattedBalance} KZT`
-                  : 'Общий баланс загружается'
-              }
-              style={[
-                styles.balancePill,
-                {
-                  backgroundColor: theme.backgroundElement,
-                  borderColor: theme.backgroundSelected,
-                },
-              ]}
-            >
-              <ThemedText type="small" themeColor="textSecondary" style={styles.balanceLabel}>
-                Баланс
-              </ThemedText>
-              <View style={styles.balanceValue}>
-                <ThemedText type="smallBold" numberOfLines={1} adjustsFontSizeToFit>
-                  {initialized ? formattedBalance : '...'}
-                </ThemedText>
-                <ThemedText type="small" themeColor="textSecondary">
-                  KZT
-                </ThemedText>
-              </View>
-            </View>
-
-            <SyncButton userId={userId} />
-          </View>
-        </SafeAreaView>
-      </ThemedView>
-
-      <Modal
-        animationType="fade"
-        onRequestClose={() => setIsMenuOpen(false)}
-        transparent
-        visible={isMenuOpen}
-      >
-        <View style={styles.modalRoot}>
-          <Pressable
-            accessibilityLabel="Закрыть меню"
-            onPress={() => setIsMenuOpen(false)}
-            style={styles.backdrop}
-          />
-
-          <Animated.View
+          <View
+            accessibilityLabel={initialized ? `Общий баланс ${formattedBalance} KZT` : 'Общий баланс загружается'}
             style={[
-              styles.drawer,
-              {
-                backgroundColor: theme.background,
-                borderRightColor: theme.backgroundSelected,
-                transform: [{ translateX: drawerPosition }],
-                width: drawerWidth,
-              },
+              styles.balancePill,
+              { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected },
             ]}
           >
-            <SafeAreaView style={styles.drawerSafeArea}>
-              <View style={styles.drawerHeader}>
-                <View>
-                  <ThemedText type="smallBold">Меню</ThemedText>
-                </View>
+            <ThemedText type="small" themeColor="textSecondary" style={styles.balanceLabel}>
+              Баланс
+            </ThemedText>
+            <View style={styles.balanceValue}>
+              <ThemedText type="smallBold" numberOfLines={1} adjustsFontSizeToFit>
+                {initialized ? formattedBalance : '...'}
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">KZT</ThemedText>
+            </View>
+          </View>
 
-                <Pressable
-                  accessibilityLabel="Закрыть меню"
-                  accessibilityRole="button"
-                  onPress={() => setIsMenuOpen(false)}
-                  style={({ pressed }) => [
-                    styles.iconButton,
-                    { backgroundColor: theme.backgroundElement },
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <X color={theme.text} size={20} strokeWidth={2.2} />
-                </Pressable>
-              </View>
-
-              <View style={styles.drawerContent}>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={openCategories}
-                  style={({ pressed }) => [
-                    styles.menuItem,
-                    { backgroundColor: theme.backgroundElement },
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <Shapes color={theme.text} size={20} strokeWidth={2.2} />
-                  <ThemedText type="smallBold">Категории</ThemedText>
-                </Pressable>
-
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => { setIsMenuOpen(false); router.push('/reports'); }}
-                  style={({ pressed }) => [styles.menuItem, { backgroundColor: theme.backgroundElement }, pressed && styles.pressed]}
-                >
-                  <ChartBar color={theme.text} size={20} strokeWidth={2.2} />
-                  <ThemedText type="smallBold">Отчёты</ThemedText>
-                </Pressable>
-
-                <Pressable accessibilityRole="button" onPress={() => { setIsMenuOpen(false); router.push('/obligations'); }} style={[styles.menuItem, { backgroundColor: theme.backgroundElement }]}>
-                  <ChartBar color={theme.text} size={20} />
-                  <ThemedText type="smallBold">Кредиты и рассрочки</ThemedText>
-                </Pressable>
-
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={openForecasts}
-                  style={({ pressed }) => [
-                    styles.menuItem,
-                    { backgroundColor: theme.backgroundElement },
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <ChartNoAxesCombined color={theme.text} size={20} strokeWidth={2.2} />
-                  <ThemedText type="smallBold">Прогнозы</ThemedText>
-                </Pressable>
-
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={handleSignOut}
-                  style={({ pressed }) => [
-                    styles.menuItem,
-                    { backgroundColor: theme.backgroundElement },
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <LogOut color="#DC2626" size={20} strokeWidth={2.2} />
-                  <ThemedText type="smallBold" style={styles.signOutText}>
-                    Выйти из аккаунта
-                  </ThemedText>
-                </Pressable>
-              </View>
-            </SafeAreaView>
-          </Animated.View>
+          <SyncButton userId={userId} />
         </View>
-      </Modal>
-    </>
+      </SafeAreaView>
+    </ThemedView>
   );
 }
 
@@ -249,9 +85,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(127, 127, 127, 0.16)',
   },
-  safeArea: {
-    width: '100%',
-  },
+  safeArea: { width: '100%' },
   headerContent: {
     minHeight: 64,
     flexDirection: 'row',
@@ -277,64 +111,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  balanceLabel: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
+  balanceLabel: { fontSize: 12, lineHeight: 16 },
   balanceValue: {
     maxWidth: '100%',
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: Spacing.one,
   },
-  pressed: {
-    opacity: 0.72,
-  },
-  modalRoot: {
-    flex: 1,
-  },
-  backdrop: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.42)',
-  },
-  drawer: {
-    flex: 1,
-    borderRightWidth: 1,
-    shadowColor: '#000000',
-    shadowOffset: { width: 4, height: 0 },
-    shadowOpacity: 0.16,
-    shadowRadius: 18,
-    elevation: 8,
-  },
-  drawerSafeArea: {
-    flex: 1,
-  },
-  drawerHeader: {
-    minHeight: 72,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.three,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(127, 127, 127, 0.16)',
-  },
-  drawerContent: {
-    padding: Spacing.three,
-    gap: Spacing.two,
-  },
-  menuItem: {
-    minHeight: 52,
-    borderRadius: 8,
-    paddingHorizontal: Spacing.three,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-  },
-  signOutText: {
-    color: '#DC2626',
-  },
+  pressed: { opacity: 0.72 },
 });

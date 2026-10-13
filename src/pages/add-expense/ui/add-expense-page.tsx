@@ -4,6 +4,7 @@ import { QueryStatus } from '@/shared/ui/query-status';
 import { useTransactionResource, useTransactionsStore } from "@/entities/transaction";
 import { TransactionForm, type TransactionFormValues } from "@/features/transaction/save-transaction";
 import { MaxContentWidth, Spacing } from "@/shared/config/theme";
+import { goBack } from '@/shared/lib/navigation/go-back';
 import { showSuccessToast } from "@/shared/model/toast-store";
 import { ThemedView } from "@/shared/ui/themed-view";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -34,7 +35,7 @@ export function AddExpensePage() {
                 obligationPaymentId
             });
             showSuccessToast('Расход добавлен');
-            router.replace('/');
+            goBack(router, '/add-expense');
         } catch {}
     }
 

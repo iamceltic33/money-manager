@@ -1,6 +1,7 @@
 import { useTransactionsStore } from "@/entities/transaction";
 import { TransactionForm, type TransactionFormValues } from "@/features/transaction/save-transaction";
 import { MaxContentWidth, Spacing } from "@/shared/config/theme";
+import { goBack } from '@/shared/lib/navigation/go-back';
 import { showSuccessToast } from "@/shared/model/toast-store";
 import { ThemedView } from "@/shared/ui/themed-view";
 import { useRouter } from "expo-router";
@@ -19,7 +20,7 @@ export default function AddIncome() {
                 note,
             });
             showSuccessToast('Доход добавлен');
-            router.replace('/');
+            goBack(router, '/add-income');
         } catch {}
     }
 

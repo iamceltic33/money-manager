@@ -5,6 +5,7 @@ import { getLocalTransactionById, useTransactionResource, useTransactionsStore }
 import { TransactionForm, type TransactionFormValues } from '@/features/transaction/save-transaction';
 import { MaxContentWidth, Spacing } from '@/shared/config/theme';
 import { useTheme } from '@/shared/lib/theme/use-theme';
+import { goBack } from '@/shared/lib/navigation/go-back';
 import { ThemedText } from '@/shared/ui/themed-text';
 import { ThemedView } from '@/shared/ui/themed-view';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -32,11 +33,7 @@ export function EditTransactionPage() {
       await updateTransaction({
         id: params.id, note, amount, occurredAt: date, categoryId, ...(transaction?.type === 'expense' ? { excludeFromAverage, obligationPaymentId } : {})
       });
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/');
-      }
+      goBack(router, `/transactions/${encodeURIComponent(params.id)}/edit`);
     } catch {
 
     }

@@ -135,16 +135,26 @@ export function HomeHistoryPage({ mode, active }: { mode: 'home' | 'history'; ac
     }
   }, [mode, active]);
   const restorePosition = useCallback(() => {
-    if (!active || !restorePending.current || (expanded && pages.loading)) return;
-    const data = expanded ? pages.items : recentTransactions;
+    if (!active) return;
+    // The home preview cannot scroll, so always include its first row and top padding.
+    // Reapply after content/layout changes as well as when returning from a form.
+    if (!expanded) {
+      offsets.current.home = 0;
+      anchors.current.home = undefined;
+      listRef.current?.scrollToOffset({ offset: 0, animated: false });
+      restorePending.current = false;
+      return;
+    }
+    if (!restorePending.current || pages.loading) return;
+    const data = pages.items;
     const index = data.findIndex(item => item.id === anchors.current[mode]);
     if (index >= 0) listRef.current?.scrollToIndex({ index, animated: false, viewPosition: 0 });
     else listRef.current?.scrollToOffset({ offset: offsets.current[mode], animated: false });
     restorePending.current = false;
-  }, [active, expanded, pages.loading, pages.items, recentTransactions, mode]);
+  }, [active, expanded, pages.loading, pages.items, mode]);
   useEffect(() => {
     restorePosition();
-  }, [restorePosition]);
+  }, [restorePosition, recentTransactions]);
 
 
   const typeLabel = filters.type === null
@@ -349,6 +359,7 @@ export function HomeHistoryPage({ mode, active }: { mode: 'home' | 'history'; ac
                   listRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: false });
                 }}
                 onContentSizeChange={restorePosition}
+                onLayout={restorePosition}
                 scrollEnabled={expanded}
                 bounces={false}
                 overScrollMode="never"
