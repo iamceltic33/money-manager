@@ -1,31 +1,41 @@
 import { ObligationPaymentField } from './obligation-payment-field';
+import { createTransactionDraft } from '../model/create-transaction-draft';
+import type { TransactionDraft } from '../model/transaction-draft';
+import type { TransactionFormSubmitResult, TransactionFormValues } from '../model/transaction-form-values';
 import { TransactionCategoryField } from "@/entities/category";
 import { formatTransactionAmountInput, isTransactionAmountInputAllowed, parseTransactionAmountInput } from "@/entities/transaction";
 import { MaxContentWidth, Spacing } from "@/shared/config";
 import { useTheme } from "@/shared/lib/theme";
 import { CheckboxField, DateField, ThemedText } from "@/shared/ui";
-import { useState } from "react";
+import { useRef, useState, type Dispatch, type SetStateAction, type RefObject } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
-export type TransactionFormValues = {
-    note: string | null;
-    amount: number;
-    categoryId: string | null;
-    date: Date;
-    excludeFromAverage?: boolean;
-    obligationPaymentId?: string | null;
-};
+export type { TransactionFormSubmitResult, TransactionFormValues } from '../model/transaction-form-values';
 
-type Props = {
+type BaseProps = {
     transactionId?: string;
     title: string;
     buttonText: string;
-    onSubmit: (values: TransactionFormValues) => void | Promise<void>;
+    onSubmit: (values: TransactionFormValues) => void | TransactionFormSubmitResult | Promise<void | TransactionFormSubmitResult>;
     type: 'income' | 'expense';
     notePlaceholder?: string;
-    defaultValues?: Partial<TransactionFormValues>;
+    isSubmitting?: boolean;
 };
+
+type UncontrolledProps = BaseProps & {
+    defaultValues?: Partial<TransactionFormValues>;
+    draft?: never;
+    onDraftChange?: never;
+};
+
+type ControlledProps = BaseProps & {
+    draft: TransactionDraft;
+    onDraftChange: Dispatch<SetStateAction<TransactionDraft>>;
+    defaultValues?: never;
+};
+
+type Props = UncontrolledProps | ControlledProps;
 
 const buttonColors: Record<Props['type'], string> = {
     income: '#16A34A',
@@ -33,22 +43,53 @@ const buttonColors: Record<Props['type'], string> = {
 };
 
 export function TransactionForm(props: Props) {
-    const { defaultValues } = props;
-    const theme = useTheme();
-    const [amountText, setAmountText] = useState<string>(
-        defaultValues?.amount === undefined ? '' : formatTransactionAmountInput(defaultValues.amount)
-    );
-    const [obligationPaymentId, setObligationPaymentId] = useState(defaultValues?.obligationPaymentId);
-    const [date, setDate] = useState(defaultValues?.date ?? new Date());
-    const [categoryId, setCategoryId] = useState<string | null>(defaultValues?.categoryId ?? null);
-    const [note, setNote] = useState(defaultValues?.note ?? '');
+    return props.isSubmitting === undefined
+        ? <LocallySubmittingTransactionForm {...props} />
+        : <TransactionFormWithDraft {...props} isSubmitting={props.isSubmitting} />;
+}
+
+function LocallySubmittingTransactionForm(props: Props) {
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [excludeFromAverage, setExcludeFromAverage] = useState(defaultValues?.excludeFromAverage ?? false);
+    const submissionPendingRef = useRef(false);
+    const onSubmit = async (values: TransactionFormValues) => {
+        if (submissionPendingRef.current) return;
+        submissionPendingRef.current = true;
+        setIsSubmitting(true);
+        try {
+            return await props.onSubmit(values);
+        } finally {
+            submissionPendingRef.current = false;
+            setIsSubmitting(false);
+        }
+    };
+    return <TransactionFormWithDraft {...props} onSubmit={onSubmit} isSubmitting={isSubmitting} />;
+}
+
+function TransactionFormWithDraft(props: Props & { isSubmitting: boolean }) {
+    return props.draft !== undefined
+        ? <TransactionFormFields {...props} />
+        : <UncontrolledTransactionForm {...props} />;
+}
+
+function UncontrolledTransactionForm(props: UncontrolledProps & { isSubmitting: boolean }) {
+    const [draft, setDraft] = useState(() => createTransactionDraft(props.defaultValues));
+    // Omitted payment IDs preserve existing links; an explicit null removes them.
+    const paymentLinkSpecifiedRef = useRef(props.defaultValues?.obligationPaymentId !== undefined);
+    const { defaultValues: _defaultValues, ...formProps } = props;
+
+    return <TransactionFormFields {...formProps} draft={draft} onDraftChange={setDraft} paymentLinkSpecifiedRef={paymentLinkSpecifiedRef} />;
+}
+
+function TransactionFormFields(props: ControlledProps & { isSubmitting: boolean; paymentLinkSpecifiedRef?: RefObject<boolean> }) {
+    const { draft, onDraftChange: setDraft, paymentLinkSpecifiedRef } = props;
+    const theme = useTheme();
+    const { isSubmitting } = props;
+    const { amountText, date, categoryId, note, excludeFromAverage, obligationPaymentId } = draft;
     const isSubmitDisabled = !amountText.trim() || isSubmitting;
 
     const onAmountChange = (value: string) => {
         if (isTransactionAmountInputAllowed(value)) {
-            setAmountText(value);
+            setDraft(current => ({ ...current, amountText: value }));
         }
     };
 
@@ -59,20 +100,14 @@ export function TransactionForm(props: Props) {
 
         if (!amount) return;
 
-        setIsSubmitting(true);
-
-        try {
-            await props.onSubmit({
-                amount,
-                date,
-                note: note.trim() || null,
-                categoryId,
-                excludeFromAverage,
-                ...(props.type === 'expense' ? { obligationPaymentId } : {}),
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
+        return await props.onSubmit({
+            amount,
+            date,
+            note: note.trim() || null,
+            categoryId,
+            excludeFromAverage,
+            ...(props.type === 'expense' ? { obligationPaymentId: paymentLinkSpecifiedRef?.current === false ? undefined : obligationPaymentId } : {}),
+        });
     };
 
     return <KeyboardAwareScrollView
@@ -102,27 +137,31 @@ export function TransactionForm(props: Props) {
             maxLength={256}
         />
 
-        <DateField label={props.type === 'income' ? 'Дата дохода' : 'Дата расхода'} value={date} onChange={setDate} maximumDate={new Date()} />
+        <DateField label={props.type === 'income' ? 'Дата дохода' : 'Дата расхода'} value={date} onChange={date => setDraft(current => ({ ...current, date }))} maximumDate={new Date()} />
 
         <TransactionCategoryField
             type={props.type}
             value={categoryId}
-            onChange={setCategoryId}
+            onChange={categoryId => setDraft(current => ({ ...current, categoryId }))}
         />
 
         {props.type === 'expense' ? <ObligationPaymentField value={obligationPaymentId} transactionId={props.transactionId} onChange={(id, selection) => {
-            setObligationPaymentId(id);
-            if (selection && selection.payment.id !== obligationPaymentId) {
-                setAmountText(formatTransactionAmountInput(selection.payment.amount));
-                setCategoryId(selection.categoryId);
-            }
+            if (paymentLinkSpecifiedRef) paymentLinkSpecifiedRef.current = true;
+            setDraft(current => ({
+                ...current,
+                obligationPaymentId: id,
+                ...(selection && selection.payment.id !== current.obligationPaymentId ? {
+                    amountText: formatTransactionAmountInput(selection.payment.amount),
+                    categoryId: selection.categoryId,
+                } : {}),
+            }));
         }} /> : null}
 
         <View style={styles.noteField}>
             <ThemedText type="smallBold">Заметка</ThemedText>
             <TextInput
                 multiline
-                onChangeText={setNote}
+                onChangeText={note => setDraft(current => ({ ...current, note }))}
                 placeholder={props.notePlaceholder}
                 placeholderTextColor={theme.textSecondary}
                 style={[
@@ -142,7 +181,7 @@ export function TransactionForm(props: Props) {
             <CheckboxField
                 label="Не учитывать в прогнозе"
                 checked={excludeFromAverage}
-                onChange={setExcludeFromAverage}
+                onChange={excludeFromAverage => setDraft(current => ({ ...current, excludeFromAverage }))}
             />
         ) : null}
 

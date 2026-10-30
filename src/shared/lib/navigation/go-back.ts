@@ -12,6 +12,8 @@ export function goBack(router: Pick<ReturnType<typeof useRouter>, 'back' | 'canD
     return;
   }
 
+  // /add-operation returns to its caller (including credits) when stack history exists.
+  // A direct form link without stack history falls back to home below.
   // A tab can handle "back" even when a directly opened screen has no stack history.
   if (router.canDismiss()) {
     router.back();

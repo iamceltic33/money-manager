@@ -2,12 +2,12 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { Spacing } from '@/shared/config/theme';
 import { ThemedText } from './themed-text';
 
-export function QueryStatus({ loading, error, retry }: { loading: boolean; error: boolean; retry: () => void }) {
+export function QueryStatus({ loading, error, retry, errorMessage = 'Не удалось загрузить операции' }: { loading: boolean; error: boolean; retry: () => void; errorMessage?: string }) {
   return (
     <View style={styles.container}>
       {loading ? <ActivityIndicator color="#2563EB" /> : null}
       {error ? <>
-        <ThemedText type="small" style={styles.text}>Не удалось загрузить операции</ThemedText>
+        <ThemedText type="small" style={styles.text}>{errorMessage}</ThemedText>
         <Pressable accessibilityRole="button" onPress={retry} style={styles.button}>
           <ThemedText type="smallBold" themeColor="text">Повторить</ThemedText>
         </Pressable>

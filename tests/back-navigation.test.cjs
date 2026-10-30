@@ -15,13 +15,13 @@ function navigate(pathname, canDismiss) {
 }
 
 test('nested screens return to their caller when a stack history exists', () => {
-  for (const path of ['/reports', '/add-expense', '/add-income', '/transactions/id', '/transactions/id/edit']) {
+  for (const path of ['/reports', '/add-expense', '/add-income', '/add-operation', '/transactions/id', '/transactions/id/edit']) {
     assert.deepEqual(navigate(path, true), [['back']], path);
   }
 });
 
 test('direct links without a stack history use the appropriate parent screen', () => {
-  for (const path of ['/reports', '/add-expense', '/add-income']) {
+  for (const path of ['/reports', '/add-expense', '/add-income', '/add-operation']) {
     assert.deepEqual(navigate(path, false), [['replace', '/']], path);
   }
   assert.deepEqual(navigate('/transactions/id', false), [['replace', '/transactions']]);

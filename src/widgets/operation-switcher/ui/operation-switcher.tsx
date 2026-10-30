@@ -2,6 +2,7 @@ import { router, usePathname } from 'expo-router';
 import { Minus, Plus } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import type { LocalTransactionType } from '@/entities/transaction';
 import { MaxContentWidth, Spacing } from '@/shared/config/theme';
 import { useTheme } from '@/shared/lib/theme/use-theme';
 import { ThemedText } from '@/shared/ui/themed-text';
@@ -21,25 +22,67 @@ const routes = [
   }
 ] as const;
 
-export function OperationSwitcher() {
-  const theme = useTheme();
+type ControlledProps = {
+  type: LocalTransactionType;
+  onTypeChange: (type: LocalTransactionType) => void;
+  disabled?: boolean;
+};
+
+type Props = ControlledProps | {
+  type?: never;
+  onTypeChange?: never;
+  disabled?: never;
+};
+
+export function OperationSwitcher(props: Props = {}) {
+  if (props.type !== undefined) {
+    return <OperationSwitcherButtons
+      type={props.type}
+      disabled={props.disabled}
+      onTypeChange={type => {
+        if (type !== props.type) props.onTypeChange(type);
+      }}
+    />;
+  }
+
+  return <NavigationOperationSwitcher />;
+}
+
+function NavigationOperationSwitcher() {
   const pathname = usePathname();
+  return <OperationSwitcherButtons
+    type={routes.find(item => item.href === pathname)?.value}
+    onTypeChange={type => router.push(routes.find(item => item.value === type)!.href)}
+  />;
+}
+
+function OperationSwitcherButtons({ type, onTypeChange, disabled = false }: {
+  type?: LocalTransactionType;
+  onTypeChange: ControlledProps['onTypeChange'];
+  disabled?: boolean;
+}) {
+  const theme = useTheme();
 
   return (
     <View style={[styles.container, { backgroundColor: theme.backgroundElement }]}>
       {routes.map((item) => {
         const Icon = item.icon;
-        const isActive = pathname === item.href;
+        const isActive = type === item.value;
 
         return (
           <Pressable
             accessibilityRole="button"
+            accessibilityState={{ selected: isActive, disabled }}
+            disabled={disabled}
             key={item.value}
-            onPress={() => router.push(item.href)}
+            onPress={() => {
+              if (!disabled) onTypeChange(item.value);
+            }}
             style={({ pressed }) => [
               styles.button,
               isActive && { backgroundColor: theme.background },
-              pressed && styles.pressed,
+              pressed && !disabled && styles.pressed,
+              disabled && styles.disabled,
             ]}
           >
             <Icon
@@ -85,5 +128,8 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.78,
+  },
+  disabled: {
+    opacity: 0.5,
   },
 });
